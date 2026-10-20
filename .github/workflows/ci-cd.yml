@@ -1,0 +1,407 @@
+name: Al-Nass Insights CI/CD
+
+on:
+  push:
+    branches: [main, ppr, dev]
+  pull_request:
+    branches: [main, ppr, dev]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment for redeploy/rollback
+        required: true
+        type: choice
+        options: [development, preproduction, production]
+      image_tag:
+        description: Existing immutable image tag (commit SHA) to redeploy; leave empty to build from this branch tip
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  packages: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  REGISTRY: ghcr.io
+
+jobs:
+  backend-validate:
+    name: Backend validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a654c6293702f396411a9ff2f32ac4ecf0b6b9 # v5.0.0
+        with:
+          global-json-file: backend/global.json
+
+      - name: Restore
+        run: dotnet restore AlNass.Insights.slnx
+
+      - name: Build
+        run: dotnet build AlNass.Insights.slnx -c Release --no-restore
+
+      - name: Unit and architecture tests
+        run: |
+          mkdir -p TestResults
+          dotnet test tests/Insights.Domain.UnitTests -c Release --no-build \
+            --logger "trx;LogFileName=domain.trx" \
+            --results-directory TestResults \
+            --collect:"XPlat Code Coverage"
+          dotnet test tests/Insights.Application.UnitTests -c Release --no-build \
+            --logger "trx;LogFileName=application.trx" \
+            --results-directory TestResults \
+            --collect:"XPlat Code Coverage"
+          dotnet test tests/Insights.Infrastructure.UnitTests -c Release --no-build \
+            --logger "trx;LogFileName=infrastructure.trx" \
+            --results-directory TestResults \
+            --collect:"XPlat Code Coverage"
+          dotnet test tests/Insights.ArchitectureTests -c Release --no-build \
+            --logger "trx;LogFileName=architecture.trx" \
+            --results-directory TestResults
+
+      - name: Integration tests (isolated — no customer Oracle/SQL)
+        run: |
+          # WebApplicationFactory + InMemory app cache; Oracle/SQL sources disabled in tests.
+          # These are not skipped when dependencies are absent — they never call customer systems.
+          dotnet test tests/Insights.IntegrationTests -c Release --no-build \
+            --logger "trx;LogFileName=integration.trx" \
+            --results-directory TestResults \
+            --collect:"XPlat Code Coverage"
+
+      - name: Upload backend test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-test-results-${{ github.sha }}
+          path: backend/TestResults/
+          if-no-files-found: warn
+          retention-days: 14
+
+  frontend-validate:
+    name: Frontend validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+
+      - name: Report missing frontend checks
+        run: |
+          {
+            echo "## Frontend check gaps"
+            echo ""
+            echo "The frontend package.json does **not** define \`lint\` or \`test\` scripts,"
+            echo "and no ESLint/Vitest/Jest tooling is present in this repository."
+            echo "CI runs deterministic install, TypeScript check, and production build only."
+            echo "Do not treat lint/unit-test as passed — they are **not configured**."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Production build
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: /api/v1
+
+  docker-validate:
+    name: Docker build validate
+    runs-on: ubuntu-latest
+    needs: [backend-validate, frontend-validate]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Set lowercase image namespace
+        id: meta
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "owner=${owner}" >> "$GITHUB_OUTPUT"
+          echo "backend_image=ghcr.io/${owner}/alnass-insights-backend" >> "$GITHUB_OUTPUT"
+          echo "frontend_image=ghcr.io/${owner}/alnass-insights-frontend" >> "$GITHUB_OUTPUT"
+
+      - name: Build backend image (no push)
+        run: |
+          docker build \
+            -t "${{ steps.meta.outputs.backend_image }}:${{ github.sha }}" \
+            ./backend
+
+      - name: Build frontend image (no push)
+        run: |
+          docker build \
+            --build-arg VITE_API_BASE_URL=/api/v1 \
+            --build-arg VITE_DASHBOARD_PUBLIC_URL=http://localhost \
+            -t "${{ steps.meta.outputs.frontend_image }}:${{ github.sha }}" \
+            ./frontend
+
+  publish-images:
+    name: Publish release images
+    runs-on: ubuntu-latest
+    needs: [docker-validate]
+    if: >
+      (github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'ppr' || github.ref_name == 'main'))
+      || (github.event_name == 'workflow_dispatch' && (inputs.image_tag == '' || inputs.image_tag == null))
+    outputs:
+      backend_image: ${{ steps.meta.outputs.backend_image }}
+      frontend_image: ${{ steps.meta.outputs.frontend_image }}
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Set image coordinates
+        id: meta
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          tag="${{ github.sha }}"
+          echo "owner=${owner}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "backend_image=ghcr.io/${owner}/alnass-insights-backend" >> "$GITHUB_OUTPUT"
+          echo "frontend_image=ghcr.io/${owner}/alnass-insights-frontend" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Build and push backend
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.backend_image }}:${{ steps.meta.outputs.image_tag }}
+            ${{ steps.meta.outputs.backend_image }}:sha-${{ steps.meta.outputs.image_tag }}
+
+      - name: Resolve frontend public URL for this branch
+        id: vite
+        run: |
+          # Images are built per branch commit — PPR/prod do NOT promote the same digest unless you redeploy a SHA.
+          case "${{ github.ref_name }}" in
+            main) url="${{ vars.VITE_DASHBOARD_PUBLIC_URL_PROD }}" ;;
+            ppr)  url="${{ vars.VITE_DASHBOARD_PUBLIC_URL_PPR }}" ;;
+            dev)  url="${{ vars.VITE_DASHBOARD_PUBLIC_URL_DEV }}" ;;
+            *)    url="http://localhost" ;;
+          esac
+          if [ -z "$url" ]; then url="http://localhost"; fi
+          echo "dashboard_url=${url}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: ./frontend
+          push: true
+          build-args: |
+            VITE_API_BASE_URL=/api/v1
+            VITE_DASHBOARD_PUBLIC_URL=${{ steps.vite.outputs.dashboard_url }}
+          tags: |
+            ${{ steps.meta.outputs.frontend_image }}:${{ steps.meta.outputs.image_tag }}
+            ${{ steps.meta.outputs.frontend_image }}:sha-${{ steps.meta.outputs.image_tag }}
+
+      - name: Write release coordinates
+        run: |
+          {
+            echo "## Published images"
+            echo ""
+            echo "- Backend: \`${{ steps.meta.outputs.backend_image }}:${{ steps.meta.outputs.image_tag }}\`"
+            echo "- Frontend: \`${{ steps.meta.outputs.frontend_image }}:${{ steps.meta.outputs.image_tag }}\`"
+            echo "- Note: each branch builds its own images (no cross-environment artifact promotion)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  resolve-images:
+    name: Resolve image references
+    runs-on: ubuntu-latest
+    needs: [publish-images]
+    if: >
+      always()
+      && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      && (needs.publish-images.result == 'success' || needs.publish-images.result == 'skipped')
+    outputs:
+      backend_ref: ${{ steps.pick.outputs.backend_ref }}
+      frontend_ref: ${{ steps.pick.outputs.frontend_ref }}
+      image_tag: ${{ steps.pick.outputs.image_tag }}
+      ready: ${{ steps.pick.outputs.ready }}
+    steps:
+      - name: Pick published or rollback tag
+        id: pick
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          backend="ghcr.io/${owner}/alnass-insights-backend"
+          frontend="ghcr.io/${owner}/alnass-insights-frontend"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.image_tag }}" ]; then
+            tag="${{ inputs.image_tag }}"
+            echo "Rollback/redeploy using existing tag ${tag}"
+          elif [ "${{ needs.publish-images.result }}" = "success" ]; then
+            tag="${{ needs.publish-images.outputs.image_tag }}"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "No images to deploy (publish skipped/failed and no image_tag input)."
+            exit 0
+          fi
+
+          echo "image_tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "backend_ref=${backend}:${tag}" >> "$GITHUB_OUTPUT"
+          echo "frontend_ref=${frontend}:${tag}" >> "$GITHUB_OUTPUT"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy ${{ matrix.environment }}
+    needs: [backend-validate, frontend-validate, docker-validate, resolve-images]
+    if: >
+      always()
+      && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      && needs.backend-validate.result == 'success'
+      && needs.frontend-validate.result == 'success'
+      && needs.docker-validate.result == 'success'
+      && needs.resolve-images.result == 'success'
+      && needs.resolve-images.outputs.ready == 'true'
+    runs-on: [self-hosted, windows, alnass-win10-deploy]
+    environment: ${{ matrix.environment }}
+    concurrency:
+      group: alnass-deploy-${{ matrix.environment }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - branch: main
+            environment: production
+            stack: prod
+          - branch: ppr
+            environment: preproduction
+            stack: ppr
+          - branch: dev
+            environment: development
+            stack: dev
+    steps:
+      - name: Checkout compose + deploy scripts
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Guard branch / environment mapping
+        shell: powershell
+        run: |
+          $branch = '${{ github.ref_name }}'
+          $expected = '${{ matrix.branch }}'
+          $event = '${{ github.event_name }}'
+          if ($event -eq 'pull_request') { throw 'PRs must never deploy.' }
+          if ($event -eq 'push' -and $branch -ne $expected) {
+            Write-Host "Skipping matrix row for branch $branch (expects $expected)"
+            echo "SKIP_DEPLOY=true" >> $env:GITHUB_ENV
+            exit 0
+          }
+          if ($event -eq 'workflow_dispatch') {
+            $requested = '${{ inputs.environment }}'
+            if ($requested -ne '${{ matrix.environment }}') {
+              Write-Host "Skipping non-requested environment"
+              echo "SKIP_DEPLOY=true" >> $env:GITHUB_ENV
+              exit 0
+            }
+            if ($requested -eq 'production' -and $branch -ne 'main') {
+              throw 'Production redeploy requires workflow_dispatch from main (or provide image_tag from main while on main).'
+            }
+            if ($requested -eq 'preproduction' -and $branch -ne 'ppr') {
+              throw 'Preproduction redeploy requires workflow_dispatch from ppr.'
+            }
+            if ($requested -eq 'development' -and $branch -ne 'dev') {
+              throw 'Development redeploy requires workflow_dispatch from dev.'
+            }
+          }
+          echo "SKIP_DEPLOY=false" >> $env:GITHUB_ENV
+
+      - name: Log in to container registry
+        if: env.SKIP_DEPLOY != 'true'
+        shell: powershell
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        run: |
+          $user = $env:REGISTRY_USERNAME
+          $pass = $env:REGISTRY_PASSWORD
+          if ([string]::IsNullOrWhiteSpace($user) -or [string]::IsNullOrWhiteSpace($pass)) {
+            $user = '${{ github.actor }}'
+            $pass = '${{ secrets.GITHUB_TOKEN }}'
+          }
+          $pass | docker login ghcr.io -u $user --password-stdin
+          if ($LASTEXITCODE -ne 0) { throw 'docker login failed' }
+
+      - name: Deploy Compose stack (exact image refs)
+        if: env.SKIP_DEPLOY != 'true'
+        shell: powershell
+        env:
+          BACKEND_REF: ${{ needs.resolve-images.outputs.backend_ref }}
+          FRONTEND_REF: ${{ needs.resolve-images.outputs.frontend_ref }}
+          IMAGE_TAG: ${{ needs.resolve-images.outputs.image_tag }}
+          DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}
+        run: |
+          # Prefer an on-host directory that already contains stack env files with secrets.
+          # Repository variable DEPLOY_ROOT example: C:\Apps\AlNass.Hospital
+          $repoRoot = '${{ github.workspace }}'
+          if (-not [string]::IsNullOrWhiteSpace($env:DEPLOY_ROOT) -and (Test-Path -LiteralPath $env:DEPLOY_ROOT)) {
+            $envName = switch ('${{ matrix.stack }}') {
+              'dev'  { '.env.dev' }
+              'ppr'  { '.env.ppr' }
+              'prod' { '.env' }
+            }
+            $hostEnv = Join-Path $env:DEPLOY_ROOT $envName
+            if (Test-Path -LiteralPath $hostEnv) {
+              Write-Host "Using host deploy root for env files: $($env:DEPLOY_ROOT)"
+              Copy-Item -Force (Join-Path '${{ github.workspace }}' 'docker-compose.yml') (Join-Path $env:DEPLOY_ROOT 'docker-compose.yml')
+              $scriptsHost = Join-Path $env:DEPLOY_ROOT 'scripts'
+              New-Item -ItemType Directory -Force -Path $scriptsHost | Out-Null
+              Copy-Item -Force (Join-Path '${{ github.workspace }}' 'scripts\Deploy-ComposeStack.ps1') (Join-Path $scriptsHost 'Deploy-ComposeStack.ps1')
+              $repoRoot = $env:DEPLOY_ROOT
+            }
+            else {
+              Write-Warning "DEPLOY_ROOT set but $hostEnv missing — falling back to workspace (stack env file must exist there)."
+            }
+          }
+
+          $script = Join-Path $repoRoot 'scripts\Deploy-ComposeStack.ps1'
+          if (-not (Test-Path -LiteralPath $script)) { throw "Deploy script missing: $script" }
+
+          & $script `
+            -Stack '${{ matrix.stack }}' `
+            -BackendImage $env:BACKEND_REF `
+            -FrontendImage $env:FRONTEND_REF `
+            -CommitSha $env:IMAGE_TAG `
+            -RepoRoot $repoRoot
+
+      - name: Deployment summary
+        if: env.SKIP_DEPLOY != 'true'
+        shell: powershell
+        run: |
+          @"
+          ## Deployed ${{ matrix.environment }}
+          - Stack: `${{ matrix.stack }}`
+          - Backend: `${{ needs.resolve-images.outputs.backend_ref }}`
+          - Frontend: `${{ needs.resolve-images.outputs.frontend_ref }}`
+          - Commit/tag: `${{ needs.resolve-images.outputs.image_tag }}`
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

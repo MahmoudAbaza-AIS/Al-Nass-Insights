@@ -1,0 +1,150 @@
+# Al-Nass Insights — one monorepo, three isolated stacks
+#
+#   alnass-dev  → frontend + backend + redis + sqlserver
+#   alnass-ppr  → frontend + backend + redis + sqlserver
+#   alnass-prod → frontend + backend + redis + sqlserver
+#
+# Local (build from source):
+#   docker compose --env-file .env.dev  up -d --build
+#   docker compose --env-file .env.ppr  up -d --build
+#   docker compose --env-file .env      up -d --build
+#   .\scripts\docker-up.ps1 -Stack dev|ppr|prod -Build
+#
+# CI/CD deploy (pull pre-built images — no rebuild on the server):
+#   $env:BACKEND_IMAGE  = 'ghcr.io/<org>/alnass-insights-backend:<sha>'
+#   $env:FRONTEND_IMAGE = 'ghcr.io/<org>/alnass-insights-frontend:<sha>'
+#   $env:PULL_POLICY    = 'always'
+#   .\scripts\Deploy-ComposeStack.ps1 -Stack dev -BackendImage ... -FrontendImage ...
+#
+# COMPOSE_PROJECT_NAME / STACK_NAME / UI_HOST_PORT come from the env file
+# so stacks can run side-by-side without name or port clashes.
+#
+# Note: `docker compose --env-file` only substitutes variables in this file.
+# Container runtime config for backend comes from the service `env_file` /
+# `environment` keys below — not automatically from --env-file alone.
+
+name: ${COMPOSE_PROJECT_NAME:-alnass-dev}
+
+services:
+  redis:
+    image: redis:7.4-alpine
+    container_name: alnass-${STACK_NAME:-dev}-redis
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
+    # Internal only — not published to the host (avoids port clashes between stacks)
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - stack
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: alnass-${STACK_NAME:-dev}-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in the stack env file}"
+      MSSQL_PID: "Developer"
+    expose:
+      - "1433"
+    volumes:
+      - sql_data:/var/opt/mssql
+    networks:
+      - stack
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped
+
+  backend:
+    image: ${BACKEND_IMAGE:-alnass-backend:local}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    pull_policy: ${PULL_POLICY:-missing}
+    container_name: alnass-${STACK_NAME:-dev}-backend
+    depends_on:
+      redis:
+        condition: service_healthy
+      sqlserver:
+        condition: service_healthy
+    env_file:
+      - ${STACK_ENV_FILE:-.env.dev}
+    expose:
+      - "8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      Authentication__DisableForLocalDevelopment: "${AUTH_DISABLE_FOR_LOCAL_DEVELOPMENT:-false}"
+      Authentication__Authority: "${AUTH_AUTHORITY:-https://keycloak.example.local/realms/alnass}"
+      Authentication__Audience: "${AUTH_AUDIENCE:-alnass-insights-api}"
+      Authentication__RequireHttpsMetadata: "${AUTH_REQUIRE_HTTPS_METADATA:-true}"
+      OpenApi__Enabled: "${OPENAPI_ENABLED:-false}"
+      AppCache__Provider: "${APPCACHE_PROVIDER:-Redis}"
+      AppCache__ConnectionString: "${APPCACHE_CONNECTION_STRING:-redis:6379}"
+      AppCache__KeyPrefix: "${APPCACHE_KEY_PREFIX:-alnass}"
+      AppCache__RunMigrationsOnStartup: "${APPCACHE_RUN_MIGRATIONS_ON_STARTUP:-false}"
+      Sources__Oracle__Enabled: "${ORACLE_ENABLED:-false}"
+      Sources__Oracle__ConnectionString: "${ORACLE_CONNECTION_STRING:-}"
+      Sources__SqlServerSymbols__Enabled: "${SYMBOLS_ENABLED:-true}"
+      Sources__SqlServerSymbols__ConnectionString: "${SYMBOLS_CONNECTION_STRING}"
+      Sources__SqlServerSymbols__SymbolsObject: "${SYMBOLS_OBJECT:-meta.v_SymbolCatalog}"
+      Synchronization__Enabled: "${SYNC_ENABLED:-true}"
+      Synchronization__Tier3IntervalMinutes: "${SYNC_TIER3_INTERVAL_MINUTES:-360}"
+      Synchronization__ActivateFasterTiers: "${SYNC_ACTIVATE_FASTER_TIERS:-false}"
+      PublicUrls__Dashboard: "${DASHBOARD_PUBLIC_URL:-http://localhost}"
+      PublicUrls__ApiBase: "${API_PUBLIC_BASE_URL:-http://localhost/api/v1}"
+    networks:
+      - stack
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health/live"]
+      interval: 30s
+      timeout: 5s
+      start_period: 25s
+      retries: 5
+    restart: unless-stopped
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-alnass-frontend:local}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: "${VITE_API_BASE_URL:-/api/v1}"
+        VITE_DASHBOARD_PUBLIC_URL: "${VITE_DASHBOARD_PUBLIC_URL:-http://localhost}"
+    pull_policy: ${PULL_POLICY:-missing}
+    container_name: alnass-${STACK_NAME:-dev}-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${UI_HOST_PORT:-8080}:80"
+    networks:
+      - stack
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+    restart: unless-stopped
+
+networks:
+  stack:
+    name: alnass-${STACK_NAME:-dev}-net
+    driver: bridge
+
+volumes:
+  redis_data:
+    name: alnass-${STACK_NAME:-dev}-redis-data
+  sql_data:
+    name: alnass-${STACK_NAME:-dev}-sql-data

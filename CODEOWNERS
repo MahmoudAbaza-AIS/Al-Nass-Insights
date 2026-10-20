@@ -1,0 +1,8 @@
+# Protect delivery automation and identity-sensitive configuration paths.
+/.github/workflows/ @advansys-is/alnass-insights-maintainers
+/docker-compose.yml @advansys-is/alnass-insights-maintainers
+/scripts/ @advansys-is/alnass-insights-maintainers
+/nginx/ @advansys-is/alnass-insights-maintainers
+/backend/deploy/ @advansys-is/alnass-insights-maintainers
+/backend/src/Insights.Presentation/Program.cs @advansys-is/alnass-insights-maintainers
+/backend/src/Insights.Presentation/appsettings*.json @advansys-is/alnass-insights-maintainers

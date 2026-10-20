@@ -1,0 +1,61 @@
+## Build
+**/bin/
+**/obj/
+**/out/
+**/artifacts/
+**/TestResults/
+*.user
+*.suo
+.vs/
+*.DotSettings.user
+
+## Node / frontend
+**/node_modules/
+**/dist/
+.npm
+*.log
+frontend/.vite/
+frontend/coverage/
+
+## Environment secrets (keep *.example committed)
+.env
+.env.dev
+.env.ppr
+.env.local
+.env.*.local
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+!.env.example
+!frontend/.env.example
+
+## Backend env-specific appsettings (secrets) — keep appsettings.json as the committed template
+**/appsettings.Development.json
+**/appsettings.ppr.json
+**/appsettings.Production.json
+**/appsettings.*.local.json
+**/appsettings.*.Secrets.json
+**/secrets.json
+*.pfx
+*.pem
+secrets/
+!**/appsettings.json
+
+
+## Ops notes with credentials
+deploy/hospital-access.local.md
+
+## Docs working extracts
+Platform.Docs/
+Platform.Docs/_extracted/
+
+## OS / IDE
+Thumbs.db
+Desktop.ini
+.idea/
+*.swp
+*~
+
+## Deploy runtime
+**/deploy/releases/
+.deploy/

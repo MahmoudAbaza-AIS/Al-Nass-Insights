@@ -1,0 +1,14 @@
+**/.git
+**/.vs
+**/bin
+**/obj
+**/TestResults
+**/node_modules
+Platform.Docs/_extracted
+**/*.user
+**/*.DotSettings.user
+.env
+*.pfx
+*.pem
+artifacts/
+deploy/releases/
