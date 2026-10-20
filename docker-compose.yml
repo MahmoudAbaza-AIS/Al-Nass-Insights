@@ -32,9 +32,11 @@ services:
     image: redis:7.4-alpine
     container_name: alnass-${STACK_NAME:-dev}-redis
     command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
-    # Internal only — not published to the host (avoids port clashes between stacks)
+    # Compose network: redis:6379. Host publish for local `dotnet run` backends.
     expose:
       - "6379"
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
