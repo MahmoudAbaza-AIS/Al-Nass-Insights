@@ -110,6 +110,7 @@ services:
       Synchronization__ActivateFasterTiers: "${SYNC_ACTIVATE_FASTER_TIERS:-false}"
       PublicUrls__Dashboard: "${DASHBOARD_PUBLIC_URL:-http://localhost}"
       PublicUrls__ApiBase: "${API_PUBLIC_BASE_URL:-http://localhost/api/v1}"
+      Cors__AllowedOrigins: "${CORS_ALLOWED_ORIGINS:-}"
     networks:
       - stack
     healthcheck:

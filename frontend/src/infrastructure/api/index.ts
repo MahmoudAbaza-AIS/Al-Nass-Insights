@@ -1,13 +1,15 @@
 import type { DashboardDataService } from "./dashboardDataService";
 import { createHttpDashboardDataService } from "./httpDashboardDataService";
 
+export { getApiBaseUrl, getDashboardPublicUrl, apiUrl } from "./config";
+export { apiFetch, ApiError, getStoredAccessToken, setStoredAccessToken } from "./httpClient";
+
 let singleton: DashboardDataService | null = null;
 
-/** Infrastructure adapter — always live Insights API behind nginx `/api`. */
+/** Infrastructure adapter — always the live Insights API (never mock data). */
 export function getDashboardDataService(): DashboardDataService {
   if (!singleton) {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL?.trim() || "/api/v1";
-    singleton = createHttpDashboardDataService(baseUrl.replace(/\/$/, ""));
+    singleton = createHttpDashboardDataService();
   }
   return singleton;
 }

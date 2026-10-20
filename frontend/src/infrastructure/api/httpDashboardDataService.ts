@@ -1,5 +1,6 @@
 import type { DashboardDataService } from "./dashboardDataService";
-import { apiFetch } from "./httpClient";
+import { apiUrl } from "./config";
+import { apiFetch, readApiError } from "./httpClient";
 import type {
   DashboardId,
   DashboardPayload,
@@ -49,16 +50,22 @@ function asDashboardId(id: string, fallback: DashboardId): DashboardId {
   return fallback;
 }
 
-export function createHttpDashboardDataService(baseUrl = "/api/v1"): DashboardDataService {
+export function createHttpDashboardDataService(): DashboardDataService {
   return {
     async getDashboard(query: DashboardQuery): Promise<DashboardPayload> {
-      const url = `${baseUrl}/dashboards/${encodeURIComponent(query.dashboardId)}`;
+      const url = apiUrl(`/dashboards/${encodeURIComponent(query.dashboardId)}`);
       const response = await apiFetch(url, {
         method: "GET",
         signal: query.signal,
       });
       if (!response.ok) {
-        throw new Error(`Dashboard request failed (${response.status})`);
+        if (response.status === 401) {
+          throw new Error("Authentication required. Please sign in again.");
+        }
+        if (response.status === 403) {
+          throw new Error("You do not have access to this dashboard.");
+        }
+        throw await readApiError(response, `Dashboard request failed (${response.status})`);
       }
       const api = (await response.json()) as ApiDashboardDetail;
       const metrics: Record<string, MetricReading> = {};

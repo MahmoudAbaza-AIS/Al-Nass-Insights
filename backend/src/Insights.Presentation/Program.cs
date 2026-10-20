@@ -100,6 +100,20 @@ else
 
 builder.Services.AddAuthorization();
 
+// Browser origins for cross-origin calls (Vite / separate UI host). Empty = same-origin only.
+var corsOrigins = ParseCorsOrigins(builder.Configuration);
+const string corsPolicyName = "Frontend";
+if (corsOrigins.Length > 0)
+{
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy(corsPolicyName, policy =>
+            policy.WithOrigins(corsOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod());
+    });
+}
+
 var enableOpenApi = builder.Configuration.GetValue("OpenApi:Enabled", builder.Environment.IsDevelopment());
 if (enableOpenApi)
 {
@@ -176,6 +190,9 @@ app.UseExceptionHandler(errorApp =>
     });
 });
 
+if (corsOrigins.Length > 0)
+    app.UseCors(corsPolicyName);
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -191,11 +208,25 @@ if (enableOpenApi)
     app.MapScalarApiReference(options =>
     {
         options.WithTitle("Al-Nass Insights");
+        options.WithTheme(ScalarTheme.Mars);
         options.WithOpenApiRoutePattern("/openapi/{documentName}.json");
     }).AllowAnonymous();
 }
 
 app.Run();
+
+static string[] ParseCorsOrigins(IConfiguration configuration)
+{
+    var configured = configuration["Cors:AllowedOrigins"] ?? string.Empty;
+    var dashboard = configuration["PublicUrls:Dashboard"] ?? string.Empty;
+    var combined = $"{configured};{dashboard}";
+    return combined
+        .Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(o => Uri.TryCreate(o, UriKind.Absolute, out var uri)
+                    && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+}
 
 public partial class Program;
 

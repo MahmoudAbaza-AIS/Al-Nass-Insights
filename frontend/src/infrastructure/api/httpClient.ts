@@ -25,6 +25,16 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): voi
   onUnauthorized = handler;
 }
 
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 /** fetch wrapper that attaches the JWT and surfaces 401s to the auth layer. */
 export async function apiFetch(input: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
@@ -40,4 +50,15 @@ export async function apiFetch(input: string, init: RequestInit = {}): Promise<R
     onUnauthorized?.();
   }
   return response;
+}
+
+export async function readApiError(response: Response, fallback: string): Promise<ApiError> {
+  let detail = fallback;
+  try {
+    const body = (await response.json()) as { detail?: string; title?: string };
+    detail = body.detail || body.title || fallback;
+  } catch {
+    /* non-JSON body */
+  }
+  return new ApiError(response.status, detail);
 }

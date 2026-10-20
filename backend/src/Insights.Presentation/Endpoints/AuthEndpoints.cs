@@ -10,12 +10,13 @@ public static class AuthEndpoints
     public static RouteGroupBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/v1/auth")
-            .WithTags("Auth")
-            .AllowAnonymous();
+            .WithTags("Auth");
 
+        // AllowAnonymous only on login — do not put it on the group (would skip /me auth).
         group.MapPost("/login", Login)
             .WithName("Login")
-            .WithSummary("Authenticate with username/password and receive a JWT access token.");
+            .WithSummary("Authenticate with username/password and receive a JWT access token.")
+            .AllowAnonymous();
 
         group.MapGet("/me", Me)
             .WithName("GetCurrentUser")
