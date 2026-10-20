@@ -151,6 +151,7 @@ jobs:
       - name: Build frontend image (no push)
         run: |
           docker build \
+            --build-arg STACK_NAME=dev \
             --build-arg VITE_API_BASE_URL=/api/v1 \
             --build-arg VITE_DASHBOARD_PUBLIC_URL=http://localhost \
             -t "${{ steps.meta.outputs.frontend_image }}:${{ github.sha }}" \
@@ -200,18 +201,31 @@ jobs:
             ${{ steps.meta.outputs.backend_image }}:${{ steps.meta.outputs.image_tag }}
             ${{ steps.meta.outputs.backend_image }}:sha-${{ steps.meta.outputs.image_tag }}
 
-      - name: Resolve frontend public URL for this branch
+      - name: Resolve frontend public URL and nginx stack for this branch
         id: vite
         run: |
           # Images are built per branch commit — PPR/prod do NOT promote the same digest unless you redeploy a SHA.
           case "${{ github.ref_name }}" in
-            main) url="${{ vars.VITE_DASHBOARD_PUBLIC_URL_PROD }}" ;;
-            ppr)  url="${{ vars.VITE_DASHBOARD_PUBLIC_URL_PPR }}" ;;
-            dev)  url="${{ vars.VITE_DASHBOARD_PUBLIC_URL_DEV }}" ;;
-            *)    url="http://localhost" ;;
+            main)
+              url="${{ vars.VITE_DASHBOARD_PUBLIC_URL_PROD }}"
+              stack="prod"
+              ;;
+            ppr)
+              url="${{ vars.VITE_DASHBOARD_PUBLIC_URL_PPR }}"
+              stack="ppr"
+              ;;
+            dev)
+              url="${{ vars.VITE_DASHBOARD_PUBLIC_URL_DEV }}"
+              stack="dev"
+              ;;
+            *)
+              url="http://localhost"
+              stack="dev"
+              ;;
           esac
           if [ -z "$url" ]; then url="http://localhost"; fi
           echo "dashboard_url=${url}" >> "$GITHUB_OUTPUT"
+          echo "stack_name=${stack}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push frontend
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
@@ -219,6 +233,7 @@ jobs:
           context: ./frontend
           push: true
           build-args: |
+            STACK_NAME=${{ steps.vite.outputs.stack_name }}
             VITE_API_BASE_URL=/api/v1
             VITE_DASHBOARD_PUBLIC_URL=${{ steps.vite.outputs.dashboard_url }}
           tags: |

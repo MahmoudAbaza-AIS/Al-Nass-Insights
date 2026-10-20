@@ -1,5 +1,8 @@
-# Al-Nass Hospital UI — React + Vite
+# Al-Nass Hospital UI — React + Vite + per-stack nginx gateway
 # Build context: ./frontend
+#
+# STACK_NAME selects which nginx conf is baked into the image:
+#   nginx/nginx.dev.conf | nginx/nginx.ppr.conf | nginx/nginx.prod.conf
 
 FROM node:22-alpine AS build
 WORKDIR /app
@@ -15,7 +18,8 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
 RUN npm run build
 
 FROM nginx:1.27-alpine AS final
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+ARG STACK_NAME=dev
+COPY nginx/nginx.${STACK_NAME}.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \

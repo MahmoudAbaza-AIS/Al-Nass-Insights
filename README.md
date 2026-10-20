@@ -12,18 +12,16 @@ This monorepo is the source of truth for the web application. A future mobile cl
 
 | Component | Role |
 |---|---|
-| **frontend** | React 19 + Vite 6 SPA. Served by nginx in the frontend container; proxies `/api`, `/health`, `/openapi`, `/scalar` to the backend on the Compose network. |
+| **frontend-nginx** | React 19 + Vite 6 SPA + nginx gateway. Proxies `/api`, `/health`, `/openapi`, `/scalar` to the backend on the Compose network. |
 | **backend** (`Insights.Presentation`) | Minimal APIs + background sync. Reads dashboards/KPIs from the app cache only (never queries Oracle/SQL on dashboard traffic). |
 | **redis** | Application-owned KPI/sync cache (AOF). One instance per environment stack. |
-| **sqlserver** | Application-owned SQL Server for symbols/widget catalog (not customer Oracle). One instance per stack; data on a named volume. |
+| **sql** | Application-owned SQL Server for symbols/widget catalog and auth users (not customer Oracle). One instance per stack; data on a named volume. |
 | **Oracle** | **Customer-managed, external.** Reachable from the backend when enabled; never containerized, migrated, or provisioned by this repo. |
 | **Keycloak** | External IdP (not in Compose). Configured via `AUTH_*` settings. |
-| **nginx/** (repo) | Optional hospital TLS edge template only — not mounted by Compose. |
-
 Each deployment environment runs its **own** Compose project: frontend, backend, Redis, SQL Server, network, and volumes. Stacks can run side-by-side on one Docker host without sharing data.
 
 ```text
-Browser → alnass-{env}-frontend:80
+Browser → alnass-{env}-frontend-nginx:80
             ├─ /           → SPA
             └─ /api,/health → alnass-{env}-backend:8080
                                 ├─ Redis (app cache)
@@ -46,7 +44,7 @@ Al-Nass Hospital/
 │   └── Deploy-ComposeStack.ps1   # CI/CD: pull SHA-tagged images, up, smoke
 ├── frontend/                     # React + Vite (npm, package-lock.json)
 │   ├── Dockerfile
-│   └── nginx.conf                # In-container reverse proxy to backend
+│   └── nginx/                    # Per-stack gateway configs (dev/ppr/prod)
 ├── backend/                      # Al-Nass Insights (.NET 10)
 │   ├── AlNass.Insights.slnx
 │   ├── Dockerfile
@@ -54,7 +52,6 @@ Al-Nass Hospital/
 │   ├── src/Insights.{Domain,Application,Infrastructure,Presentation}/
 │   ├── tests/                    # Unit, architecture, integration
 │   └── deploy/                   # Legacy Windows Service scripts (optional)
-├── nginx/default.conf            # Optional outer TLS edge (not in Compose)
 └── Platform.Docs/                # Local ops/requirements docs (gitignored)
 ```
 
@@ -139,7 +136,7 @@ Stop (keeps volumes):
 | `docker compose --env-file .env.dev` | Substitutes `${VAR}` in `docker-compose.yml` (project name, ports, image names, mapped `environment:` values). |
 | Backend `env_file: ${STACK_ENV_FILE}` | Loads that file into the **backend** container. |
 | Backend `environment:` block | Explicit ASP.NET configuration overrides (`AppCache__*`, `Sources__*`, …). |
-| Frontend `build.args` | Vite **build-time** values (`VITE_*`) baked into the static bundle. |
+| Frontend `build.args` | `STACK_NAME` selects `nginx/nginx.{dev\|ppr\|prod}.conf`; `VITE_*` baked into the static bundle. |
 
 `--env-file` alone does **not** magically inject every key into every service—only what Compose substitutes or what each service declares.
 

@@ -1,8 +1,10 @@
 # Al-Nass Insights — one monorepo, three isolated stacks
 #
-#   alnass-dev  → frontend + backend + redis + sqlserver
-#   alnass-ppr  → frontend + backend + redis + sqlserver
-#   alnass-prod → frontend + backend + redis + sqlserver
+#   Each environment:
+#     frontend-nginx  → SPA + API gateway (nginx)
+#     backend
+#     redis
+#     sql
 #
 # Local (build from source):
 #   docker compose --env-file .env.dev  up -d --build
@@ -45,7 +47,7 @@ services:
       start_period: 5s
     restart: unless-stopped
 
-  sqlserver:
+  sql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: alnass-${STACK_NAME:-dev}-sql
     environment:
@@ -76,7 +78,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      sqlserver:
+      sql:
         condition: service_healthy
     env_file:
       - ${STACK_ENV_FILE:-.env.dev}
@@ -118,16 +120,18 @@ services:
       retries: 5
     restart: unless-stopped
 
-  frontend:
+  frontend-nginx:
     image: ${FRONTEND_IMAGE:-alnass-frontend:local}
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
+        # Selects frontend/nginx/nginx.{dev|ppr|prod}.conf baked into the image
+        STACK_NAME: "${STACK_NAME:-dev}"
         VITE_API_BASE_URL: "${VITE_API_BASE_URL:-/api/v1}"
         VITE_DASHBOARD_PUBLIC_URL: "${VITE_DASHBOARD_PUBLIC_URL:-http://localhost}"
     pull_policy: ${PULL_POLICY:-missing}
-    container_name: alnass-${STACK_NAME:-dev}-frontend
+    container_name: alnass-${STACK_NAME:-dev}-frontend-nginx
     depends_on:
       backend:
         condition: service_healthy

@@ -98,7 +98,7 @@ $required = @(
     "alnass-$Stack-redis",
     "alnass-$Stack-sql",
     "alnass-$Stack-backend",
-    "alnass-$Stack-frontend"
+    "alnass-$Stack-frontend-nginx"
 )
 
 $allHealthy = $false
@@ -121,8 +121,8 @@ if (-not $allHealthy) {
     docker compose --env-file $envFile ps
     Write-Host "--- backend logs (tail) ---"
     docker logs --tail 80 "alnass-$Stack-backend" 2>&1
-    Write-Host "--- frontend logs (tail) ---"
-    docker logs --tail 40 "alnass-$Stack-frontend" 2>&1
+    Write-Host "--- frontend-nginx logs (tail) ---"
+    docker logs --tail 40 "alnass-$Stack-frontend-nginx" 2>&1
     throw "Stack '$Stack' did not become healthy within ${HealthyTimeoutSec}s."
 }
 
@@ -154,7 +154,7 @@ catch {
 
 # Confirm running containers use the requested image references
 $backendRunning = docker inspect --format '{{.Config.Image}}' "alnass-$Stack-backend"
-$frontendRunning = docker inspect --format '{{.Config.Image}}' "alnass-$Stack-frontend"
+$frontendRunning = docker inspect --format '{{.Config.Image}}' "alnass-$Stack-frontend-nginx"
 if ($backendRunning -ne $BackendImage) {
     throw "Backend image mismatch: running='$backendRunning' expected='$BackendImage'"
 }
