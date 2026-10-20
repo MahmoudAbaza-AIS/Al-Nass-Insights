@@ -26,6 +26,8 @@ public class ApiContractTests : IClassFixture<WebApplicationFactory<Program>>
             builder.UseSetting("AppCache:Provider", "InMemory");
             builder.UseSetting("Synchronization:Enabled", "false");
             builder.UseSetting("Sources:Oracle:Enabled", "false");
+            builder.UseSetting("Sources:SqlServerSymbols:RunMigrationsOnStartup", "false");
+            builder.UseSetting("Sources:SqlServerSymbols:ConnectionString", "");
             builder.UseSetting("OpenApi:Enabled", "false");
         }).CreateClient();
     }

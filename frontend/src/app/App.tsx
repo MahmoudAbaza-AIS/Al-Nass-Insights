@@ -2,9 +2,11 @@ import { lazy, Suspense, useMemo } from "react";
 import { DashboardShell } from "./layouts/DashboardShell";
 import { useDashboardRoute } from "./navigation/useDashboardRoute";
 import { useDashboardData } from "@shared/hooks/useDashboardData";
+import { useAuth } from "@shared/providers/AuthProvider";
 import { useDisplayPreferences } from "@shared/providers/DisplayPreferencesProvider";
 import { WidgetSkeleton } from "@shared/components/WidgetSkeleton";
 import { WidgetErrorState } from "@shared/components/WidgetErrorState";
+import { LoginPage } from "@modules/auth/LoginPage";
 import { getModuleById } from "@modules/index";
 import type { DashboardId, DashboardPayload } from "@contracts/metrics";
 
@@ -35,6 +37,7 @@ function DashboardBody({
 
 /** Composition root — wires modular dashboard modules; no module-to-module imports. */
 export function App() {
+  const { user, isLoading: authLoading, logout } = useAuth();
   const { route, current, navigate, registry } = useDashboardRoute();
   const prefs = useDisplayPreferences();
   const { state, data, error, isRefreshing, isStale, lastSuccessfulAt, refresh } =
@@ -43,7 +46,20 @@ export function App() {
       facilityId: route.facilityId,
       period: route.period,
       refreshIntervalMs: prefs.refreshIntervalMs,
+      enabled: Boolean(user),
     });
+
+  if (authLoading) {
+    return (
+      <div className="dash-app-bg flex min-h-screen items-center justify-center text-[var(--dash-text-muted)]">
+        Checking session…
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
 
   return (
     <DashboardShell
@@ -56,6 +72,8 @@ export function App() {
       isRefreshing={isRefreshing}
       error={error}
       onRefresh={refresh}
+      userDisplayName={user.displayName}
+      onLogout={logout}
     >
       {state === "loading" && !data ? (
         <div className="grid gap-4 md:grid-cols-3">

@@ -18,6 +18,8 @@ public class DashboardNeverHitsSourceTests
             builder.UseSetting("Authentication:DisableForLocalDevelopment", "true");
             builder.UseSetting("ASPNETCORE_ENVIRONMENT", "Development");
             builder.UseSetting("Synchronization:Enabled", "false");
+            builder.UseSetting("Sources:SqlServerSymbols:RunMigrationsOnStartup", "false");
+            builder.UseSetting("Sources:SqlServerSymbols:ConnectionString", "");
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<IOracleKpiSource>();

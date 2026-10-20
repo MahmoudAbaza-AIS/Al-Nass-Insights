@@ -13,6 +13,8 @@ export interface UseDashboardDataOptions {
   /** Background refresh interval in ms; 0 disables. */
   refreshIntervalMs?: number;
   pauseWhenHidden?: boolean;
+  /** When false, skip API calls (e.g. while logged out). */
+  enabled?: boolean;
 }
 
 export interface UseDashboardDataResult {
@@ -32,6 +34,7 @@ export function useDashboardData(options: UseDashboardDataOptions): UseDashboard
     period,
     refreshIntervalMs = 60_000,
     pauseWhenHidden = true,
+    enabled = true,
   } = options;
 
   const [state, setState] = useState<LoadState>("idle");
@@ -51,7 +54,7 @@ export function useDashboardData(options: UseDashboardDataOptions): UseDashboard
 
   const load = useCallback(
     async (mode: "initial" | "refresh") => {
-      if (inFlight.current) {
+      if (!enabled || inFlight.current) {
         return;
       }
       inFlight.current = true;
@@ -101,20 +104,26 @@ export function useDashboardData(options: UseDashboardDataOptions): UseDashboard
         }
       }
     },
-    [dashboardId, facilityId, period],
+    [dashboardId, facilityId, period, enabled],
   );
 
   useEffect(() => {
+    if (!enabled) {
+      setData(null);
+      setState("idle");
+      setError(null);
+      return;
+    }
     setData(null);
     setState("loading");
     void load("initial");
     return () => {
       abortRef.current?.abort();
     };
-  }, [dashboardId, facilityId, period, load]);
+  }, [dashboardId, facilityId, period, load, enabled]);
 
   useEffect(() => {
-    if (!refreshIntervalMs || refreshIntervalMs <= 0) {
+    if (!enabled || !refreshIntervalMs || refreshIntervalMs <= 0) {
       return;
     }
 
@@ -137,7 +146,7 @@ export function useDashboardData(options: UseDashboardDataOptions): UseDashboard
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [refreshIntervalMs, pauseWhenHidden, load]);
+  }, [refreshIntervalMs, pauseWhenHidden, load, enabled]);
 
   return {
     state,

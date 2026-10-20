@@ -1,4 +1,5 @@
 import type { DashboardDataService } from "./dashboardDataService";
+import { apiFetch } from "./httpClient";
 import type {
   DashboardId,
   DashboardPayload,
@@ -52,9 +53,8 @@ export function createHttpDashboardDataService(baseUrl = "/api/v1"): DashboardDa
   return {
     async getDashboard(query: DashboardQuery): Promise<DashboardPayload> {
       const url = `${baseUrl}/dashboards/${encodeURIComponent(query.dashboardId)}`;
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: "GET",
-        headers: { Accept: "application/json" },
         signal: query.signal,
       });
       if (!response.ok) {

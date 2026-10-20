@@ -16,6 +16,8 @@ public sealed class SqlServerSymbolOptions
     public bool Enabled { get; set; }
     /// <summary>Allowlisted schema.table for symbol metadata — never arbitrary SQL from metadata.</summary>
     public string SymbolsObject { get; set; } = string.Empty;
+    /// <summary>Apply catalog + auth DbUp scripts on startup (default true when connection string is set).</summary>
+    public bool RunMigrationsOnStartup { get; set; } = true;
 }
 
 public sealed class AppCacheOptions

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json.Serialization;
 using Insights.Application;
 using Insights.Application.Security;
@@ -10,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
+using AuthOpts = Insights.Infrastructure.Options.AuthenticationOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,8 +35,9 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 var allowAuthBypass =
     builder.Environment.IsDevelopment()
     || string.Equals(builder.Environment.EnvironmentName, "ppr", StringComparison.OrdinalIgnoreCase);
-var authDisabled = builder.Configuration.GetValue("Authentication:DisableForLocalDevelopment", false)
-    && allowAuthBypass;
+var authOpts = builder.Configuration.GetSection(AuthOpts.SectionName).Get<AuthOpts>() ?? new AuthOpts();
+var authDisabled = authOpts.DisableForLocalDevelopment && allowAuthBypass;
+var authMode = string.IsNullOrWhiteSpace(authOpts.Mode) ? "LocalJwt" : authOpts.Mode;
 
 if (authDisabled)
 {
@@ -42,11 +45,11 @@ if (authDisabled)
         .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, DevelopmentAuthHandler>(
             "Development", _ => { });
 }
-else
+else if (string.Equals(authMode, "Keycloak", StringComparison.OrdinalIgnoreCase))
 {
-    var authority = builder.Configuration["Authentication:Authority"]
-        ?? throw new InvalidOperationException("Authentication:Authority (Keycloak realm URL) is required outside local-dev bypass.");
-    var audience = builder.Configuration["Authentication:Audience"]
+    var authority = authOpts.Authority
+        ?? throw new InvalidOperationException("Authentication:Authority (Keycloak realm URL) is required when Mode=Keycloak.");
+    var audience = authOpts.Audience
         ?? throw new InvalidOperationException("Authentication:Audience is required.");
 
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -54,7 +57,7 @@ else
         {
             options.Authority = authority;
             options.Audience = audience;
-            options.RequireHttpsMetadata = builder.Configuration.GetValue("Authentication:RequireHttpsMetadata", true);
+            options.RequireHttpsMetadata = authOpts.RequireHttpsMetadata;
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
@@ -65,6 +68,32 @@ else
                 ValidAudience = audience,
                 NameClaimType = "preferred_username",
                 RoleClaimType = "roles"
+            };
+        });
+}
+else
+{
+    // LocalJwt — tokens issued by POST /api/v1/auth/login against auth.Users.
+    if (string.IsNullOrWhiteSpace(authOpts.SigningKey) || authOpts.SigningKey.Length < 32)
+        throw new InvalidOperationException("Authentication:SigningKey must be at least 32 characters for LocalJwt.");
+
+    var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(authOpts.SigningKey));
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.RequireHttpsMetadata = authOpts.RequireHttpsMetadata;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = authOpts.Issuer,
+                ValidAudience = authOpts.Audience,
+                IssuerSigningKey = signingKey,
+                ClockSkew = TimeSpan.FromMinutes(1),
+                NameClaimType = "preferred_username",
+                RoleClaimType = System.Security.Claims.ClaimTypes.Role
             };
         });
 }
@@ -91,7 +120,7 @@ if (enableOpenApi)
                 Type = SecuritySchemeType.Http,
                 Scheme = "bearer",
                 BearerFormat = "JWT",
-                Description = "Keycloak access token"
+                Description = "JWT from POST /api/v1/auth/login (or Keycloak when Mode=Keycloak)"
             };
             return Task.CompletedTask;
         });
@@ -108,6 +137,13 @@ if (args.Contains("--migrate-app-cache", StringComparer.OrdinalIgnoreCase))
     return;
 }
 
+if (args.Contains("--migrate-owned-sql", StringComparer.OrdinalIgnoreCase))
+{
+    var migrateOwned = builder.Build();
+    migrateOwned.Services.GetRequiredService<OwnedSqlMigrator>().Migrate();
+    return;
+}
+
 var app = builder.Build();
 
 var cacheOpts = app.Configuration.GetSection(AppCacheOptions.SectionName).Get<AppCacheOptions>();
@@ -115,6 +151,13 @@ if (cacheOpts is { Provider: "SqlServer" } && app.Configuration.GetValue("AppCac
 {
     // Optional local/Docker convenience — production prefers deploy scripts + separate credentials.
     app.Services.GetRequiredService<AppCacheMigrator>().Migrate();
+}
+
+// Catalog + auth.Users on application-owned SQL Server (works with Redis app-cache).
+if (app.Configuration.GetValue("Sources:SqlServerSymbols:RunMigrationsOnStartup", true)
+    && !string.IsNullOrWhiteSpace(app.Configuration["Sources:SqlServerSymbols:ConnectionString"]))
+{
+    app.Services.GetRequiredService<OwnedSqlMigrator>().Migrate();
 }
 
 app.UseExceptionHandler(errorApp =>
@@ -137,6 +180,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHealthEndpoints();
+app.MapAuthEndpoints();
 app.MapDashboardEndpoints();
 app.MapKpiEndpoints();
 app.MapMetadataEndpoints();

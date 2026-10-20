@@ -19,6 +19,8 @@ export interface DashboardShellProps {
   isRefreshing: boolean;
   error?: string | null;
   onRefresh: () => void;
+  userDisplayName?: string;
+  onLogout?: () => void;
   children: ReactNode;
 }
 
@@ -32,6 +34,8 @@ export function DashboardShell({
   isRefreshing,
   error,
   onRefresh,
+  userDisplayName,
+  onLogout,
   children,
 }: DashboardShellProps) {
   const shellRef = useRef<HTMLDivElement>(null);
@@ -66,6 +70,8 @@ export function DashboardShell({
             setPresentationMode(!presentationMode);
           });
         }}
+        userDisplayName={userDisplayName}
+        onLogout={onLogout}
       />
       <div className="relative z-[1] flex min-h-0 flex-1 flex-col md:flex-row">
         <aside className="hidden border-r border-white/5 md:block" aria-label="Primary">

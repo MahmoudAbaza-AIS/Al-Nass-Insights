@@ -24,9 +24,13 @@ public sealed class AppCacheMigrator(IOptions<AppCacheOptions> options, ILogger<
 
         EnsureDatabaseExists(opts.ConnectionString);
 
+        // Cache schema only — catalog/auth scripts run via OwnedSqlMigrator on Symbols SQL.
         var upgrade = DeployChanges.To
             .SqlDatabase(opts.ConnectionString)
-            .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly(), s => s.Contains("Persistence.Migrations", StringComparison.Ordinal))
+            .WithScriptsEmbeddedInAssembly(
+                Assembly.GetExecutingAssembly(),
+                s => s.Contains("Persistence.Migrations", StringComparison.Ordinal)
+                     && s.Contains("001_InitialAppCache", StringComparison.Ordinal))
             .LogToConsole()
             .Build();
 

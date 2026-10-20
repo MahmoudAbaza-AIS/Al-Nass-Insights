@@ -11,10 +11,12 @@
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.13" />
     <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.26.301" />
     <PackageReference Include="StackExchange.Redis" Version="2.10.1" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
   </ItemGroup>
 
   <ItemGroup>

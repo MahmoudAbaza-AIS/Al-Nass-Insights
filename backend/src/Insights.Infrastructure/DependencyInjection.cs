@@ -1,4 +1,5 @@
 using Insights.Application.Abstractions;
+using Insights.Infrastructure.Auth;
 using Insights.Infrastructure.Options;
 using Insights.Infrastructure.Persistence;
 using Insights.Infrastructure.Sources.Api;
@@ -18,8 +19,13 @@ public static class DependencyInjection
         services.Configure<SqlServerSymbolOptions>(configuration.GetSection(SqlServerSymbolOptions.SectionName));
         services.Configure<AppCacheOptions>(configuration.GetSection(AppCacheOptions.SectionName));
         services.Configure<SyncOptions>(configuration.GetSection(SyncOptions.SectionName));
+        services.Configure<AuthenticationOptions>(configuration.GetSection(AuthenticationOptions.SectionName));
 
         services.AddSingleton<AppCacheMigrator>();
+        services.AddSingleton<OwnedSqlMigrator>();
+        services.AddScoped<IUserStore, SqlServerUserStore>();
+        services.AddSingleton<IJwtTokenService, JwtTokenService>();
+        services.AddHostedService<DemoUserSeeder>();
 
         var provider = configuration.GetSection(AppCacheOptions.SectionName).GetValue<string>("Provider") ?? "Redis";
         if (string.Equals(provider, "Redis", StringComparison.OrdinalIgnoreCase))

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { PrimeReactProvider } from "@primereact/core";
 import Aura from "@primeuix/themes/aura";
 import { definePreset } from "@primeuix/themes";
+import { AuthProvider } from "@shared/providers/AuthProvider";
 import { DisplayPreferencesProvider } from "@shared/providers/DisplayPreferencesProvider";
 
 const AlNassPreset = definePreset(Aura, {
@@ -52,7 +53,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
       }}
     >
       <div className="dash-dark">
-        <DisplayPreferencesProvider>{children}</DisplayPreferencesProvider>
+        <AuthProvider>
+          <DisplayPreferencesProvider>{children}</DisplayPreferencesProvider>
+        </AuthProvider>
       </div>
     </PrimeReactProvider>
   );

@@ -13,6 +13,8 @@ export interface DashboardHeaderProps {
   presentationMode: boolean;
   onRefresh: () => void;
   onToggleFullscreen: () => void;
+  userDisplayName?: string;
+  onLogout?: () => void;
 }
 
 export function DashboardHeader({
@@ -25,6 +27,8 @@ export function DashboardHeader({
   presentationMode,
   onRefresh,
   onToggleFullscreen,
+  userDisplayName,
+  onLogout,
 }: DashboardHeaderProps) {
   return (
     <header className="relative z-[2] flex min-h-[var(--dash-header-height)] flex-col gap-2 border-b border-white/5 px-4 py-3 lg:px-6">
@@ -43,7 +47,12 @@ export function DashboardHeader({
           timeZone={timeZone}
           error={error}
         />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {userDisplayName ? (
+            <span className="mr-1 text-xs text-[var(--dash-text-muted)]" title={userDisplayName}>
+              {userDisplayName}
+            </span>
+          ) : null}
           <Button
             type="button"
             severity="secondary"
@@ -63,6 +72,17 @@ export function DashboardHeader({
           >
             {presentationMode ? "Exit presentation" : "Presentation"}
           </Button>
+          {onLogout ? (
+            <Button
+              type="button"
+              severity="secondary"
+              size="small"
+              onClick={onLogout}
+              aria-label="Sign out"
+            >
+              Sign out
+            </Button>
+          ) : null}
         </div>
       </div>
     </header>

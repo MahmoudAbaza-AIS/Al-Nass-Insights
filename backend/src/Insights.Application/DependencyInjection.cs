@@ -1,4 +1,5 @@
 using Insights.Application.Abstractions;
+using Insights.Application.Auth;
 using Insights.Application.Dashboards;
 using Insights.Application.Kpis;
 using Insights.Application.Sync;
@@ -15,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<GetDashboardDetailQuery>();
         services.AddScoped<GetKpiQuery>();
         services.AddScoped<GetKpiHistoryQuery>();
+        services.AddScoped<LoginCommand>();
         services.AddScoped<SynchronizationOrchestrator>();
         return services;
     }
