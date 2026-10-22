@@ -1,44 +1,27 @@
 import type { MetricReading } from "@contracts/metrics";
-import { MetricValue } from "@shared/components/MetricValue";
+import { KpiMetric, KpiPedestal } from "@shared/components/KpiMetric";
 import { DashboardSection } from "@shared/components/DashboardSection";
 
 interface InfectionsSectionProps {
   metrics: Record<string, MetricReading>;
 }
 
+const INFECTION_ROWS: ReadonlyArray<readonly [string, string, number]> = [
+  ["or.ssi_rate", "SSI Rate", 1],
+  ["clinical.cauti_rate", "CAUTI Rate", 0],
+  ["clinical.clabsi_rate", "CLABSI Rate", 1],
+  ["clinical.vap_rate", "VAP Rate", 1],
+];
+
 export function InfectionsSection({ metrics: m }: InfectionsSectionProps) {
   return (
     <DashboardSection title="Infections">
-      <div className="flex flex-wrap items-start gap-6">
-        <span
-          className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-[rgba(0,229,255,0.08)] text-[var(--dash-cyan)] ring-1 ring-[var(--dash-cyan-border)]"
-          aria-hidden
-        >
-          <i className="pi pi-circle-fill text-3xl" />
-        </span>
-        <div className="grid min-w-0 flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
-          <MetricValue label="SSI Rate" reading={m["or.ssi_rate"]} unit="%" precision={1} size="sm" />
-          <MetricValue
-            label="CAUTI Rate"
-            reading={m["clinical.cauti_rate"]}
-            unit="%"
-            precision={0}
-            size="sm"
-          />
-          <MetricValue
-            label="CLABSI Rate"
-            reading={m["clinical.clabsi_rate"]}
-            unit="%"
-            precision={1}
-            size="sm"
-          />
-          <MetricValue
-            label="VAP Rate"
-            reading={m["clinical.vap_rate"]}
-            unit="%"
-            precision={1}
-            size="sm"
-          />
+      <div className="flex items-center gap-[var(--dash-gap)]">
+        <KpiPedestal icon="pi-shield" />
+        <div className="grid min-w-0 flex-1 grid-cols-2 gap-[var(--dash-gap)] sm:grid-cols-4">
+          {INFECTION_ROWS.map(([id, label, precision]) => (
+            <KpiMetric key={id} label={label} reading={m[id]} unit="%" precision={precision} order="value-first" />
+          ))}
         </div>
       </div>
     </DashboardSection>

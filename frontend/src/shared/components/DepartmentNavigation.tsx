@@ -21,24 +21,12 @@ export function DepartmentNavigation({
       aria-label="Department dashboards"
       className={
         compact
-          ? "flex gap-2 overflow-x-auto px-3 py-2"
-          : "flex h-full w-[var(--dash-nav-width)] flex-col items-center justify-center gap-[var(--dash-nav-gap)] py-4"
+          ? "flex flex-wrap justify-center gap-2 px-3 py-2"
+          : "flex h-full w-[var(--dash-nav-width)] flex-col items-center justify-center gap-[var(--dash-nav-gap)]"
       }
     >
       {items.map((item) => {
         const active = item.id === activeId;
-        const className = compact
-          ? `flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition ${
-              active
-                ? "bg-[var(--dash-nav-active)] text-[var(--dash-cyan)] shadow-[var(--dash-glow-strong)]"
-                : "bg-[var(--dash-nav-idle)] text-white/70 hover:text-white"
-            }`
-          : `flex size-[var(--dash-nav-btn)] shrink-0 items-center justify-center rounded-[var(--dash-radius-nav)] transition ${
-              active
-                ? "bg-[var(--dash-nav-active)] shadow-[var(--dash-glow-strong)]"
-                : "bg-[var(--dash-nav-idle)] opacity-80 hover:opacity-100"
-            }`;
-
         return (
           <Tooltip.Root key={item.id}>
             <Tooltip.Trigger
@@ -47,12 +35,12 @@ export function DepartmentNavigation({
               onClick={() => onNavigate(item.id)}
               aria-current={active ? "page" : undefined}
               aria-label={item.title}
-              className={className}
+              className="dash-nav-btn"
             >
               <NavIcon name={item.icon} />
             </Tooltip.Trigger>
             <Tooltip.Portal>
-              <Tooltip.Positioner side="right">
+              <Tooltip.Positioner side={compact ? "bottom" : "right"}>
                 <Tooltip.Popup className="rounded-md bg-[#0a3340] px-2 py-1 text-xs text-[var(--dash-text)] shadow-lg ring-1 ring-white/10">
                   {item.title}
                 </Tooltip.Popup>

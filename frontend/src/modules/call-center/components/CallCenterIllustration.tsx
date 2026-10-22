@@ -1,14 +1,15 @@
+import { IllustrationPanel } from "@shared/components/IllustrationPanel";
 import globe from "../../../assets/illustrations/call-center-globe.png";
 
-export function CallCenterIllustration() {
+export function CallCenterIllustration({ className }: { className?: string }) {
   return (
-    <img
+    <IllustrationPanel
+      label="Call center illustration"
       src={globe}
-      alt=""
       width={900}
       height={950}
-      className="dash-illustration h-auto w-full max-w-md object-contain"
-      decoding="async"
+      mask="feather"
+      className={className}
     />
   );
 }

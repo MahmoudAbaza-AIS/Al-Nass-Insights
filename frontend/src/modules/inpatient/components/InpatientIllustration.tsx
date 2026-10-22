@@ -1,14 +1,15 @@
+import { IllustrationPanel } from "@shared/components/IllustrationPanel";
 import inpatientRoom from "../../../assets/illustrations/inpatient-room.png";
 
-export function InpatientIllustration() {
+export function InpatientIllustration({ className }: { className?: string }) {
   return (
-    <img
+    <IllustrationPanel
+      label="Inpatient care illustration"
       src={inpatientRoom}
-      alt=""
       width={1100}
       height={900}
-      className="dash-illustration h-auto w-full max-w-lg object-contain"
-      decoding="async"
+      mask="feather"
+      className={className}
     />
   );
 }

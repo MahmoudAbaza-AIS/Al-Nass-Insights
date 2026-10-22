@@ -1,14 +1,15 @@
+import { IllustrationPanel } from "@shared/components/IllustrationPanel";
 import clinic from "../../../assets/illustrations/opd-clinic.png";
 
-export function ClinicIllustration() {
+export function ClinicIllustration({ className }: { className?: string }) {
   return (
-    <img
+    <IllustrationPanel
+      label="Outpatient clinic illustration"
       src={clinic}
-      alt=""
-      width={1100}
-      height={1000}
-      className="dash-illustration h-auto w-full max-w-xl object-contain"
-      decoding="async"
+      width={3300}
+      height={3000}
+      mask="feather"
+      className={className}
     />
   );
 }

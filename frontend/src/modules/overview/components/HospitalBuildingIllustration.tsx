@@ -1,14 +1,14 @@
+import { IllustrationPanel } from "@shared/components/IllustrationPanel";
 import hospitalBuilding from "../../../assets/illustrations/hospital-building.png";
 
-export function HospitalBuildingIllustration() {
+export function HospitalBuildingIllustration({ className }: { className?: string }) {
   return (
-    <img
+    <IllustrationPanel
+      label="Central hospital building illustration"
       src={hospitalBuilding}
-      alt=""
       width={1980}
       height={1508}
-      className="dash-illustration relative z-[1] h-auto w-full max-w-[min(58vw,48rem)] object-contain"
-      decoding="async"
+      className={className}
     />
   );
 }

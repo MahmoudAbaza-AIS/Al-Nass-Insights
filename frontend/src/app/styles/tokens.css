@@ -1,12 +1,21 @@
-/* Al-Nass Executive Dashboard — tokens from Figma "New Design" (3840×2160) */
+/*
+ * Al-Nass Executive Dashboard tokens.
+ * Reference frames are 3840×2160; sizes below are mobile defaults.
+ * Tablet/desktop overrides live in global.css and scale from `--u`
+ * (1u = 19.2px at a 1920×1080 viewport, i.e. reference px ÷ 2 ÷ 19.2).
+ */
 :root {
   /* Surfaces — Overview frame fill #082936 */
   --dash-bg-deep: #04161d;
   --dash-bg: #082936;
   --dash-bg-elevated: #0a3340;
   --dash-bg-panel: rgba(8, 40, 52, 0.55);
-  --dash-nav-idle: rgba(255, 255, 255, 0.05);
-  --dash-nav-active: rgba(0, 229, 255, 0.15);
+  --dash-header-bg: linear-gradient(180deg, rgba(3, 20, 27, 0.72) 0%, rgba(4, 26, 35, 0.45) 100%);
+  --dash-nav-idle: rgba(255, 255, 255, 0.04);
+  --dash-nav-idle-border: rgba(255, 255, 255, 0.1);
+  --dash-nav-active: rgba(0, 229, 255, 0.12);
+  --dash-nav-active-border: rgba(84, 233, 255, 0.7);
+  --dash-pedestal: radial-gradient(ellipse at 50% 45%, rgba(4, 30, 40, 0.95) 0%, rgba(4, 30, 40, 0.75) 55%, rgba(4, 30, 40, 0) 72%);
 
   /* Brand / data — Figma #54e9ff / #00e5ff */
   --dash-cyan: #54e9ff;
@@ -14,12 +23,13 @@
   --dash-cyan-dim: #1aa8c4;
   --dash-cyan-glow: rgba(0, 229, 255, 0.4);
   --dash-cyan-border: rgba(0, 229, 255, 0.15);
+  --dash-teal: #2ee6c5;
 
   /* Text */
   --dash-text: #ffffff;
   --dash-text-muted: rgba(255, 255, 255, 0.8);
-  --dash-text-subtle: #5f7a84;
-  --dash-label: #8fbac8;
+  --dash-text-subtle: #7f9ba5;
+  --dash-label: #c9dbe1;
 
   /* Status */
   --dash-success: #98c93c;
@@ -30,33 +40,27 @@
 
   /* Chart */
   --dash-chart-track: rgba(255, 255, 255, 0.08);
+  --dash-gauge-disc: rgba(4, 30, 40, 0.85);
   --dash-chart-grid: rgba(143, 176, 188, 0.18);
-  --dash-chart-inbound: #4ec9e8;
-  --dash-chart-outbound: #d4a017;
-  --dash-chart-ontime: #5bb8e8;
-  --dash-chart-noshow: #e0a84a;
-  --dash-chart-cancel: #e85a75;
+  --dash-chart-inbound: #6cc6f5;
+  --dash-chart-outbound: #f6c47a;
+  --dash-chart-ontime: #6cc6f5;
+  --dash-chart-noshow: #f6c47a;
+  --dash-chart-cancel: #f2545b;
 
-  /*
-   * Layout scale: Figma frames are 3840×2160.
-   * Rem/clamp sizes approximate 0.5× at ~1920 and grow toward 4K.
-   */
-  --dash-nav-width: clamp(4.5rem, 4vw, 7.5rem);
-  --dash-nav-btn: clamp(2.75rem, 3.2vw, 7.5rem);
-  --dash-nav-icon: clamp(1.35rem, 1.6vw, 5rem);
-  --dash-nav-gap: clamp(0.75rem, 1.2vw, 3rem);
-  --dash-header-height: clamp(4.25rem, 6vw, 7.5rem);
-  --dash-space-1: 0.25rem;
-  --dash-space-2: 0.5rem;
-  --dash-space-3: 0.75rem;
-  --dash-space-4: 1rem;
-  --dash-space-5: 1.5rem;
-  --dash-space-6: 2rem;
-  --dash-space-7: 3rem;
+  /* Layout */
+  --dash-nav-width: 4.5rem;
+  --dash-nav-btn: 2.75rem;
+  --dash-nav-icon: 1.25rem;
+  --dash-nav-gap: 0.75rem;
+  --dash-header-height: 4rem;
+  --dash-page-pad: 0.75rem;
+  --dash-gap: 1rem;
+  --dash-gap-lg: 1.5rem;
   --dash-radius-sm: 0.375rem;
   --dash-radius-md: 0.625rem;
   --dash-radius-lg: 1rem;
-  --dash-radius-nav: 1.5rem;
+  --dash-radius-nav: 0.625rem;
 
   /* Effects — active nav shadow from Figma */
   --dash-glow-soft: 0 0 24px rgba(0, 229, 255, 0.2);
@@ -67,26 +71,38 @@
   --dash-font: "Poppins", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --dash-font-digital: "Share Tech Mono", "Cascadia Mono", "Consolas", monospace;
   --dash-font-mono: "Cascadia Mono", "Consolas", "Liberation Mono", monospace;
-  --dash-fs-xs: 0.7rem;
+  --dash-fs-xs: 0.6875rem;
   --dash-fs-sm: 0.8rem;
   --dash-fs-md: 0.95rem;
-  --dash-fs-lg: clamp(1.125rem, 1.4vw, 1.5rem);
-  --dash-fs-xl: clamp(1.35rem, 1.8vw, 2rem);
-  --dash-fs-2xl: clamp(1.75rem, 2.4vw, 3rem);
-  --dash-fs-3xl: clamp(2.25rem, 3vw, 4.5rem);
-  --dash-fs-title: clamp(1.25rem, 1.6vw, 3rem);
-  --dash-fs-clock-date: clamp(0.85rem, 1vw, 2rem);
-  --dash-fs-clock-time: clamp(1rem, 1.25vw, 2.5rem);
-  --dash-fs-counter-label: clamp(0.85rem, 1.1vw, 2.5rem);
-  --dash-fs-digit: clamp(1.75rem, 3vw, 7.2rem);
+  --dash-fs-title: 1.1rem;
+  --dash-fs-section: 1rem;
+  --dash-fs-label: 0.85rem;
+  --dash-fs-value: 1.6rem;
+  --dash-fs-value-lg: 1.75rem;
+  --dash-fs-unit: 0.95rem;
+  --dash-fs-clock-date: 0.8rem;
+  --dash-fs-clock-time: 0.95rem;
+  --dash-fs-counter-label: 1rem;
+  --dash-fs-digit: 1.75rem;
+  --dash-fs-chart: 0.6875rem;
   --dash-fw-label: 500;
   --dash-fw-value: 700;
 
+  /* KPI icon pedestal + gauges */
+  --dash-pedestal-w: 4rem;
+  --dash-kpi-icon: 1.5rem;
+  --dash-gauge-lg: 8rem;
+  --dash-gauge-md: 6.5rem;
+  --dash-gauge-sm: 5rem;
+  --dash-chart-h: 11rem;
+  --dash-chart-w: 22rem;
+  --dash-section-rule-w: 9rem;
+
   /* Digit cells — Figma 120×130 @ 4K */
-  --dash-digit-w: clamp(2.25rem, 3.2vw, 7.5rem);
-  --dash-digit-h: clamp(2.5rem, 3.4vw, 8.125rem);
-  --dash-digit-gap: clamp(0.5rem, 0.75vw, 1.75rem);
-  --dash-digit-radius: clamp(0.5rem, 0.6vw, 1rem);
+  --dash-digit-w: 2.4rem;
+  --dash-digit-h: 2.7rem;
+  --dash-digit-gap: 0.5rem;
+  --dash-digit-radius: 0.5rem;
 
   /* Timezone for live clock */
   --dash-timezone: Asia/Riyadh;

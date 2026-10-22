@@ -1,35 +1,41 @@
-import type { ReactNode } from "react";
+import type { CSSProperties } from "react";
 
 export interface IllustrationPanelProps {
   label: string;
-  children: ReactNode;
+  src: string;
+  width: number;
+  height: number;
+  /**
+   * `feather` fades hard crop edges of assets exported with an opaque backdrop;
+   * `fade-corner` hides a neighbouring-layer fragment caught in the bottom-end corner.
+   */
+  mask?: "feather" | "fade-corner";
   className?: string;
-  aspectRatio?: string;
 }
 
-/** Soft cyan bloom behind central Figma illustrations — no card chrome. */
-export function IllustrationPanel({
-  label,
-  children,
-  className = "",
-  aspectRatio = "4 / 3",
-}: IllustrationPanelProps) {
+const MASK_CLASS: Record<NonNullable<IllustrationPanelProps["mask"]>, string> = {
+  feather: "dash-illus__img--feather",
+  "fade-corner": "dash-illus__img--fade-corner",
+};
+
+/**
+ * Central Figma illustration with its cyan bloom. On tablet/desktop it fills the grid
+ * area it is placed in (contained at its own aspect ratio, never cropped); on mobile it
+ * flows at its natural aspect ratio.
+ */
+export function IllustrationPanel({ label, src, width, height, mask, className = "" }: IllustrationPanelProps) {
+  const style = { "--dash-illus-ratio": width / height } as CSSProperties;
   return (
-    <div
-      className={`dash-hub-illustration relative mx-auto flex max-w-full min-h-0 items-center justify-center ${className}`}
-      style={aspectRatio === "auto" ? undefined : { aspectRatio }}
-      role="img"
-      aria-label={label}
-    >
-      <div
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[70%] w-[80%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-70"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(0,229,255,0.22) 0%, transparent 68%)",
-        }}
-        aria-hidden
+    <div className={`dash-illus ${className}`} role="img" aria-label={label} style={style}>
+      <div className="dash-illus__glow" aria-hidden />
+      <img
+        src={src}
+        alt=""
+        width={width}
+        height={height}
+        decoding="async"
+        className={`dash-illus__img ${mask ? MASK_CLASS[mask] : ""}`}
       />
-      <div className="relative z-[1] max-h-full max-w-full">{children}</div>
     </div>
   );
 }

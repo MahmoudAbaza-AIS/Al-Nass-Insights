@@ -1,5 +1,4 @@
 import type { DashboardPayload } from "@contracts/metrics";
-import { IllustrationPanel } from "@shared/components/IllustrationPanel";
 import { AnatomyIllustration } from "../components/AnatomyIllustration";
 import { SafetyHeadline } from "../components/SafetyHeadline";
 import { VentilationSection } from "../components/VentilationSection";
@@ -11,21 +10,23 @@ export function ClinicalDashboard({ data }: { data: DashboardPayload }) {
   const m = data.metrics;
 
   return (
-    <div className="dash-hub h-full min-h-0">
-      <div className="shrink-0">
+    <div className="dash-hub md:landscape:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)_minmax(0,1fr)] md:landscape:grid-rows-[auto_minmax(0,1fr)_auto] md:portrait:grid-cols-2 md:portrait:grid-rows-[auto_minmax(0,1fr)_auto_auto]">
+      <div className="md:landscape:col-span-3 md:portrait:col-span-2">
         <SafetyHeadline metrics={m} />
       </div>
 
-      <div className="grid min-h-0 flex-1 items-center gap-4 lg:grid-cols-[1fr_minmax(12rem,18rem)_1fr] lg:gap-5">
+      <AnatomyIllustration className="md:landscape:col-start-2 md:landscape:row-span-2 md:landscape:row-start-2 md:portrait:col-span-2" />
+
+      <div className="md:landscape:col-start-1 md:landscape:row-start-2 md:landscape:self-center">
         <VentilationSection metrics={m} />
-        <IllustrationPanel label="Anatomical illustration" aspectRatio="auto" className="self-center">
-          <AnatomyIllustration />
-        </IllustrationPanel>
+      </div>
+      <div className="md:landscape:col-start-3 md:landscape:row-start-2 md:landscape:self-center">
         <OutcomesSection metrics={m} />
       </div>
-
-      <div className="grid shrink-0 gap-4 md:grid-cols-2 md:gap-5">
+      <div className="md:landscape:col-start-1 md:landscape:row-start-3">
         <MedicationSection metrics={m} />
+      </div>
+      <div className="md:landscape:col-start-3 md:landscape:row-start-3">
         <InfectionsSection metrics={m} />
       </div>
     </div>

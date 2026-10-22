@@ -1,8 +1,7 @@
 import { useState } from "react";
 import type { DashboardPayload } from "@contracts/metrics";
-import { KpiIconShell, KpiMetric } from "@shared/components/KpiMetric";
+import { KpiMetric } from "@shared/components/KpiMetric";
 import { DashboardSection } from "@shared/components/DashboardSection";
-import { IllustrationPanel } from "@shared/components/IllustrationPanel";
 import { CapacityIndicator } from "@shared/visualizations/CapacityIndicator";
 import { RadialGauge } from "@shared/visualizations/RadialGauge";
 import { KpiDetailDialog } from "@shared/components/KpiDetailDialog";
@@ -18,17 +17,13 @@ export function InpatientDashboard({ data }: { data: DashboardPayload }) {
   const m = data.metrics;
 
   return (
-    <div className="dash-hub h-full min-h-0">
-      <div className="grid shrink-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="dash-hub md:landscape:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)] md:landscape:grid-rows-[auto_minmax(0,1fr)_auto] md:portrait:grid-cols-2 md:portrait:grid-rows-[auto_minmax(0,1fr)_auto_auto]">
+      <div className="grid grid-cols-1 gap-[var(--dash-gap)] sm:grid-cols-2 md:landscape:col-span-3 md:landscape:grid-cols-4 md:portrait:col-span-2">
         <KpiMetric
           label="Bed Occupancy"
           reading={m["inpatient.bed_occupancy_rate"]}
           unit="%"
-          icon={
-            <KpiIconShell>
-              <i className="pi pi-inbox text-xl" />
-            </KpiIconShell>
-          }
+          icon="pi-inbox"
           onOpenDetail={() => setDetailId("inpatient.bed_occupancy_rate")}
         />
         <KpiMetric
@@ -36,22 +31,14 @@ export function InpatientDashboard({ data }: { data: DashboardPayload }) {
           reading={m["inpatient.alos_days"]}
           unit="days"
           precision={1}
-          icon={
-            <KpiIconShell>
-              <i className="pi pi-clock text-xl" />
-            </KpiIconShell>
-          }
+          icon="pi-clock"
           onOpenDetail={() => setDetailId("inpatient.alos_days")}
         />
         <KpiMetric
           label="Bed Turnover"
           reading={m["inpatient.bed_turnover"]}
           unit="patients/bed"
-          icon={
-            <KpiIconShell>
-              <i className="pi pi-sync text-xl" />
-            </KpiIconShell>
-          }
+          icon="pi-sync"
           onOpenDetail={() => setDetailId("inpatient.bed_turnover")}
         />
         <KpiMetric
@@ -59,55 +46,50 @@ export function InpatientDashboard({ data }: { data: DashboardPayload }) {
           reading={m["inpatient.cancellation_rate"]}
           unit="%"
           tone="critical"
-          icon={
-            <KpiIconShell tone="danger">
-              <i className="pi pi-times-circle text-xl" />
-            </KpiIconShell>
-          }
+          icon="pi-times-circle"
+          iconTone="danger"
           onOpenDetail={() => setDetailId("inpatient.cancellation_rate")}
         />
       </div>
 
-      <div className="grid min-h-0 flex-1 items-center gap-4 lg:grid-cols-[auto_minmax(14rem,1fr)_auto] lg:gap-6">
-        <DashboardSection title="Bed Capacity" className="justify-self-center lg:justify-self-end">
-          <WidgetErrorBoundary title="Bed capacity">
-            <CapacityIndicator capacity={data.capacity} />
-          </WidgetErrorBoundary>
-        </DashboardSection>
+      <InpatientIllustration className="md:landscape:col-start-2 md:landscape:row-span-2 md:landscape:row-start-2 md:portrait:col-span-2" />
 
-        <IllustrationPanel label="Inpatient care illustration" aspectRatio="auto">
-          <InpatientIllustration />
-        </IllustrationPanel>
+      <DashboardSection
+        title="Bed Capacity"
+        className="justify-self-center md:landscape:col-start-1 md:landscape:row-start-2 md:landscape:self-start md:landscape:justify-self-end"
+      >
+        <WidgetErrorBoundary title="Bed capacity">
+          <CapacityIndicator capacity={data.capacity} />
+        </WidgetErrorBoundary>
+      </DashboardSection>
 
-        <KpiMetric
-          label="Readmission Rate"
-          reading={m["inpatient.readmission_rate"]}
-          unit="%"
-          size="lg"
-          icon={
-            <KpiIconShell>
-              <i className="pi pi-replay text-xl" />
-            </KpiIconShell>
-          }
-          onOpenDetail={() => setDetailId("inpatient.readmission_rate")}
-        />
+      <KpiMetric
+        label="Readmission Rate"
+        reading={m["inpatient.readmission_rate"]}
+        unit="%"
+        icon="pi-replay"
+        order="value-first"
+        size="lg"
+        className="justify-self-center md:landscape:col-start-3 md:landscape:row-start-2 md:landscape:justify-self-start"
+        onOpenDetail={() => setDetailId("inpatient.readmission_rate")}
+      />
+
+      <div className="justify-self-center md:landscape:col-start-1 md:landscape:row-start-3 md:landscape:justify-self-start">
+        <PatientExperiencePanel reading={m["inpatient.satisfaction_score"]} />
       </div>
 
-      <div className="grid shrink-0 items-end gap-4 md:grid-cols-[1.2fr_1fr_1fr] md:gap-6">
-        <PatientExperiencePanel reading={m["inpatient.satisfaction_score"]} />
+      <div className="flex flex-wrap justify-center gap-[var(--dash-gap-lg)] md:landscape:col-start-3 md:landscape:row-start-3 md:landscape:justify-around">
         <RadialGauge
           label="Complaint Rate"
           value={m["inpatient.complaint_rate"]?.value ?? null}
           tone="warning"
-          size={130}
-          strokeWidth={11}
+          displaySize="var(--dash-gauge-md)"
         />
         <RadialGauge
           label="Patient Violation Rate"
           value={m["inpatient.violation_rate"]?.value ?? null}
           tone="danger"
-          size={130}
-          strokeWidth={11}
+          displaySize="var(--dash-gauge-md)"
         />
       </div>
 

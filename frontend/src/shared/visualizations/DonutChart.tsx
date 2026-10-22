@@ -1,9 +1,11 @@
 import type { DistributionSegment } from "@contracts/metrics";
-import { formatPercent } from "../utils/format";
+import { StatusLegend } from "../components/StatusLegend";
+import { formatNumber, formatPercent, shareToPercent } from "../utils/format";
+import { ChartLabel, ChartUnit } from "./ChartLabel";
 
 const DEFAULT_COLORS = [
-  "var(--dash-chart-inbound)",
-  "var(--dash-chart-outbound)",
+  "var(--dash-chart-ontime)",
+  "var(--dash-chart-noshow)",
   "var(--dash-chart-cancel)",
   "var(--dash-warning)",
 ];
@@ -11,92 +13,106 @@ const DEFAULT_COLORS = [
 export interface DonutChartProps {
   segments: DistributionSegment[];
   label: string;
-  size?: number;
-  strokeWidth?: number;
+  /** CSS length for the ring diameter. */
+  displaySize?: string;
   colors?: string[];
-  showLegend?: boolean;
+  legend?: "right" | "none";
 }
 
+const C = 80;
+const R = 52;
+const STROKE = 13;
+const LABEL_R = R + 26;
+const VIEW = { x: -34, y: -14, w: 228, h: 188 };
+
+/** Reference donut: thick segmented ring starting at 6 o'clock, percentages placed beside each arc. */
 export function DonutChart({
   segments,
   label,
-  size = 140,
-  strokeWidth = 16,
+  displaySize = "var(--dash-gauge-lg)",
   colors = DEFAULT_COLORS,
-  showLegend = true,
+  legend = "right",
 }: DonutChartProps) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
+  const circumference = 2 * Math.PI * R;
+  const renderedWidth = `calc(${displaySize} * 1.425)`;
   let cursor = 0;
 
   const arcs = segments.map((seg, index) => {
-    const share = seg.share ?? 0;
-    const length = (share / 100) * circumference;
-    const dashoffset = -cursor;
-    cursor += length;
+    const pct = shareToPercent(seg.share) ?? 0;
+    const start = cursor;
+    cursor += pct;
+    const mid = ((start + pct / 2) / 100) * Math.PI * 2 + Math.PI / 2;
     return {
       ...seg,
-      length,
-      dashoffset,
+      pct,
+      start,
       color: colors[index % colors.length],
+      lx: C + Math.cos(mid) * LABEL_R,
+      ly: C + Math.sin(mid) * LABEL_R,
     };
   });
 
-  const summary = segments
-    .map((s) => `${s.label} ${formatPercent(s.share)}`)
-    .join(", ");
+  const hasData = arcs.some((a) => a.share !== null);
+  const summary = hasData
+    ? segments.map((s) => `${s.label} ${formatPercent(shareToPercent(s.share))}`).join(", ")
+    : "unavailable";
 
   return (
-    <div className="flex flex-wrap items-center gap-4">
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        role="img"
-        aria-label={`${label}. ${summary}`}
-      >
-        <title>{`${label}. ${summary}`}</title>
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="var(--dash-chart-track)"
-          strokeWidth={strokeWidth}
-        />
-        {arcs.map((arc) => (
-          <circle
-            key={arc.id}
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke={arc.color}
-            strokeWidth={strokeWidth}
-            strokeDasharray={`${arc.length} ${circumference - arc.length}`}
-            strokeDashoffset={arc.dashoffset}
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          />
-        ))}
-      </svg>
-      {showLegend ? (
-        <ul className="m-0 list-none space-y-2 p-0 text-[length:var(--dash-fs-sm)]">
-          {arcs.map((arc) => (
-            <li key={arc.id} className="flex items-center gap-2 text-[var(--dash-label)]">
-              <span
-                className="inline-block h-2.5 w-2.5 rounded-sm"
-                style={{ background: arc.color }}
-                aria-hidden
+    <div className="flex flex-wrap items-center justify-center gap-x-[var(--dash-gap)] gap-y-2">
+      <div className="relative shrink-0" style={{ width: renderedWidth, height: `calc(${displaySize} * 1.175)` }}>
+        <svg
+          viewBox={`${VIEW.x} ${VIEW.y} ${VIEW.w} ${VIEW.h}`}
+          className="block size-full"
+          role="img"
+          aria-label={`${label}. ${summary}`}
+        >
+          <circle cx={C} cy={C} r={R} fill="none" stroke="var(--dash-chart-track)" strokeWidth={STROKE} />
+          {arcs.map((arc) =>
+            arc.pct > 0 ? (
+              <circle
+                key={arc.id}
+                cx={C}
+                cy={C}
+                r={R}
+                fill="none"
+                stroke={arc.color}
+                strokeWidth={STROKE}
+                strokeDasharray={`${(arc.pct / 100) * circumference} ${circumference}`}
+                strokeDashoffset={-(arc.start / 100) * circumference}
+                transform={`rotate(90 ${C} ${C})`}
               />
-              <span>
-                {arc.label}{" "}
-                <span className="font-semibold text-[var(--dash-cyan)]">
-                  {formatPercent(arc.share)}
-                </span>
-              </span>
-            </li>
-          ))}
-        </ul>
+            ) : null,
+          )}
+        </svg>
+        {hasData
+          ? arcs.map((arc) => (
+              <ChartLabel
+                key={`l-${arc.id}`}
+                x={arc.lx}
+                y={arc.ly}
+                viewBox={VIEW}
+                renderedWidth={renderedWidth}
+                size={17}
+                color={arc.color}
+                weight={600}
+              >
+                {formatNumber(arc.pct, { maximumFractionDigits: 0 })}
+                <ChartUnit>%</ChartUnit>
+              </ChartLabel>
+            ))
+          : null}
+        {!hasData ? (
+          <ChartLabel x={C} y={C} viewBox={VIEW} renderedWidth={renderedWidth} size={11} color="var(--dash-text-muted)">
+            Unavailable
+          </ChartLabel>
+        ) : null}
+      </div>
+      {legend === "right" ? (
+        <StatusLegend
+          variant="square"
+          direction="column"
+          items={arcs.map((arc) => ({ color: arc.color, label: arc.label }))}
+        />
       ) : null}
     </div>
   );

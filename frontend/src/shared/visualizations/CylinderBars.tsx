@@ -1,88 +1,100 @@
 import type { DistributionSegment } from "@contracts/metrics";
-import { formatPercent } from "../utils/format";
+import { StatusLegend } from "../components/StatusLegend";
+import { formatNumber, formatPercent, shareToPercent } from "../utils/format";
+import { ChartLabel, ChartUnit } from "./ChartLabel";
 
-const TONE_FILL: Record<string, string> = {
-  info: "url(#cylCyan)",
-  watch: "url(#cylAmber)",
-  critical: "url(#cylRed)",
-  good: "url(#cylCyan)",
-  neutral: "url(#cylCyan)",
-};
+export const DISTRIBUTION_COLORS = [
+  "var(--dash-chart-ontime)",
+  "var(--dash-chart-noshow)",
+  "var(--dash-chart-cancel)",
+] as const;
 
 export interface CylinderBarsProps {
   segments: DistributionSegment[];
   label: string;
+  colors?: readonly string[];
 }
 
-export function CylinderBars({ segments, label }: CylinderBarsProps) {
-  const max = Math.max(...segments.map((s) => s.share ?? 0), 1);
-  const width = 200;
-  const height = 150;
-  const barW = 36;
-  const gap = 28;
-  const baseY = 120;
+const BAR_W = 30;
+const GAP = 14;
+const BASE_Y = 132;
+const MAX_H = 92;
+const RY = 7;
+const VIEW_H = 150;
+
+/** Application Request (Overview): glossy cylinders on dark rings, percentage above each. */
+export function CylinderBars({ segments, label, colors = DISTRIBUTION_COLORS }: CylinderBarsProps) {
+  const pcts = segments.map((s) => shareToPercent(s.share));
+  const max = Math.max(...pcts.map((p) => p ?? 0), 1);
+  const width = 24 + segments.length * (BAR_W + GAP);
+  const hasData = pcts.some((p) => p !== null);
+  const view = { w: width, h: VIEW_H };
+  const renderedWidth = `calc(var(--dash-chart-h) * ${width / VIEW_H})`;
+  const summary = hasData
+    ? segments.map((s, i) => `${s.label} ${formatPercent(pcts[i])}`).join(", ")
+    : "unavailable";
 
   return (
-    <div>
-      <h3 className="mb-2 text-[length:var(--dash-fs-sm)] font-medium text-[var(--dash-text)]">
-        {label}
-      </h3>
-      <div className="flex flex-wrap items-end gap-4">
-        <svg
-          width={width}
-          height={height}
-          viewBox={`0 0 ${width} ${height}`}
-          role="img"
-          aria-label={label}
-        >
-          <defs>
-            <linearGradient id="cylCyan" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#7af0ff" />
-              <stop offset="100%" stopColor="#1aa8c4" />
-            </linearGradient>
-            <linearGradient id="cylAmber" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ffd27a" />
-              <stop offset="100%" stopColor="#c4841a" />
-            </linearGradient>
-            <linearGradient id="cylRed" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ff8a95" />
-              <stop offset="100%" stopColor="#c4283a" />
-            </linearGradient>
-          </defs>
+    <div className="flex items-end gap-[var(--dash-gap)]">
+      <div className="relative shrink-0" style={{ height: "var(--dash-chart-h)", width: renderedWidth }}>
+        <svg viewBox={`0 0 ${width} ${VIEW_H}`} className="block size-full" role="img" aria-label={`${label}. ${summary}`}>
           {segments.map((seg, i) => {
-            const h = ((seg.share ?? 0) / max) * 80;
-            const x = 20 + i * (barW + gap);
-            const y = baseY - h;
-            const fill = TONE_FILL[seg.tone ?? "neutral"];
+            const pct = pcts[i];
+            const color = colors[i % colors.length];
+            const h = pct === null ? 0 : Math.max(6, (pct / max) * MAX_H);
+            const x = 12 + i * (BAR_W + GAP);
+            const cx = x + BAR_W / 2;
+            const top = BASE_Y - h;
             return (
               <g key={seg.id}>
-                <ellipse cx={x + barW / 2} cy={baseY} rx={barW / 2} ry={8} fill={fill} opacity={0.55} />
-                <rect x={x} y={y} width={barW} height={h} fill={fill} />
-                <ellipse cx={x + barW / 2} cy={y} rx={barW / 2} ry={8} fill={fill} />
-                <text
-                  x={x + barW / 2}
-                  y={y - 12}
-                  textAnchor="middle"
-                  fill="var(--dash-cyan)"
-                  fontSize={12}
-                  fontWeight={700}
-                >
-                  {formatPercent(seg.share)}
-                </text>
+                <ellipse cx={cx} cy={BASE_Y + 2} rx={BAR_W / 2 + 7} ry={RY + 4} fill="none" stroke="rgba(255,255,255,0.18)" />
+                <ellipse cx={cx} cy={BASE_Y + 2} rx={BAR_W / 2 + 3} ry={RY + 2} fill="rgba(2,18,25,0.7)" />
+                {pct !== null ? (
+                  <>
+                    <rect x={x} y={top} width={BAR_W} height={h} fill={color} opacity={0.88} />
+                    <ellipse cx={cx} cy={BASE_Y} rx={BAR_W / 2} ry={RY} fill={color} opacity={0.88} />
+                    <rect x={x + 4} y={top} width={5} height={h} fill="rgba(255,255,255,0.25)" />
+                    <ellipse cx={cx} cy={top} rx={BAR_W / 2} ry={RY} fill={color} />
+                    <ellipse cx={cx} cy={top} rx={BAR_W / 2 - 3} ry={RY - 2.5} fill="rgba(255,255,255,0.35)" />
+                  </>
+                ) : null}
               </g>
             );
           })}
         </svg>
-        <ul className="m-0 list-none space-y-2 p-0 text-[length:var(--dash-fs-sm)] text-[var(--dash-label)]">
-          {segments.map((seg) => (
-            <li key={seg.id}>
-              {seg.label}{" "}
-              <span className="font-semibold text-[var(--dash-cyan)]">
-                {formatPercent(seg.share)}
-              </span>
-            </li>
-          ))}
-        </ul>
+        {segments.map((seg, i) => {
+          const pct = pcts[i];
+          if (pct === null) return null;
+          const top = BASE_Y - Math.max(6, (pct / max) * MAX_H);
+          return (
+            <ChartLabel
+              key={seg.id}
+              x={12 + i * (BAR_W + GAP) + BAR_W / 2}
+              y={top - RY - 3}
+              viewBox={view}
+              renderedWidth={renderedWidth}
+              size={13}
+              baseline="bottom"
+              color={colors[i % colors.length]}
+              weight={600}
+            >
+              {formatNumber(pct, { maximumFractionDigits: 0 })}
+              <ChartUnit>%</ChartUnit>
+            </ChartLabel>
+          );
+        })}
+        {!hasData ? (
+          <ChartLabel x={width / 2} y={70} viewBox={view} renderedWidth={renderedWidth} size={11} color="var(--dash-text-muted)">
+            Unavailable
+          </ChartLabel>
+        ) : null}
+      </div>
+      <div className="pb-[0.4em]">
+        <StatusLegend
+          variant="square"
+          direction="column"
+          items={segments.map((seg, i) => ({ color: colors[i % colors.length], label: seg.label }))}
+        />
       </div>
     </div>
   );

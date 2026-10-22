@@ -1,6 +1,5 @@
-import type { ReactNode } from "react";
 import type { MetricReading, MetricStatusTone } from "@contracts/metrics";
-import { formatMetricValue } from "../utils/format";
+import { formatMetricParts, formatMetricValue } from "../utils/format";
 import { availabilityLabel, statusToneClass } from "../utils/status";
 
 export interface KpiMetricProps {
@@ -10,24 +9,39 @@ export interface KpiMetricProps {
   precision?: number;
   tone?: MetricStatusTone;
   supportingText?: string;
-  /** Figma hub layouts: icon sits left of label+value stack */
-  icon?: ReactNode;
-  size?: "sm" | "md" | "lg";
-  align?: "start" | "center";
+  /** PrimeIcons class (e.g. `pi-clock`) shown on the reference's elliptical pedestal. */
+  icon?: string;
+  iconTone?: "cyan" | "danger" | "warning";
+  /** `end` mirrors the block (icon right, text right-aligned) as on the Call Center frame. */
+  iconPosition?: "start" | "end";
+  /** Reference uses label-over-value on KPI rows and value-over-label on hub callouts. */
+  order?: "label-first" | "value-first";
+  size?: "md" | "lg";
   onOpenDetail?: () => void;
   className?: string;
 }
 
-const VALUE_SIZE: Record<NonNullable<KpiMetricProps["size"]>, string> = {
-  sm: "text-2xl",
-  md: "text-[clamp(1.75rem,2.4vw,2.75rem)]",
-  lg: "text-[clamp(2rem,3vw,3.25rem)]",
+const ICON_TONE: Record<NonNullable<KpiMetricProps["iconTone"]>, string> = {
+  cyan: "text-[var(--dash-cyan)]",
+  danger: "text-[var(--dash-danger)]",
+  warning: "text-[var(--dash-warning)]",
 };
 
-/**
- * Figma-aligned KPI block: icon + label, large value, optional supporting line.
- * No card chrome — metrics float on the dashboard canvas like the reference frames.
- */
+export function KpiPedestal({
+  icon,
+  tone = "cyan",
+}: {
+  icon: string;
+  tone?: NonNullable<KpiMetricProps["iconTone"]>;
+}) {
+  return (
+    <span className={`dash-pedestal ${ICON_TONE[tone]}`} aria-hidden>
+      <i className={`pi ${icon}`} />
+    </span>
+  );
+}
+
+/** Figma KPI callout: icon on a pedestal beside a label/value stack, floating on the canvas. */
 export function KpiMetric({
   label,
   reading,
@@ -36,45 +50,67 @@ export function KpiMetric({
   tone,
   supportingText,
   icon,
+  iconTone = "cyan",
+  iconPosition = "start",
+  order = "label-first",
   size = "md",
-  align = "start",
   onOpenDetail,
   className = "",
 }: KpiMetricProps) {
   const resolvedTone = tone ?? reading?.statusTone ?? "info";
-  const valueClass = statusToneClass(resolvedTone);
+  const parts = formatMetricParts(reading?.value ?? null, unit, precision);
   const display = formatMetricValue(reading?.value ?? null, unit, precision);
   const availability = reading?.availability;
-  const showUnavailable =
-    !reading || reading.value === null || availability === "unavailable";
+  const showUnavailable = !reading || reading.value === null || availability === "unavailable";
   const support = supportingText ?? reading?.supportingText;
+  const end = iconPosition === "end";
+
+  const labelEl = (
+    <div className="text-[length:var(--dash-fs-label)] font-medium leading-tight text-[var(--dash-label)]">
+      {label}
+    </div>
+  );
+  const valueEl = (
+    <div
+      className={`whitespace-nowrap font-semibold leading-[1.15] ${
+        size === "lg" ? "text-[length:var(--dash-fs-value-lg)]" : "text-[length:var(--dash-fs-value)]"
+      } ${showUnavailable ? "text-[var(--dash-warning)]" : `${statusToneClass(resolvedTone)} dash-glow-text`}`}
+    >
+      {showUnavailable ? (
+        "—"
+      ) : (
+        <>
+          {parts.number}
+          {parts.unit ? (
+            <span className="ms-[0.3em] text-[length:var(--dash-fs-unit)] font-medium">{parts.unit}</span>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
 
   const content = (
     <>
-      {icon ? <div className="shrink-0">{icon}</div> : null}
-      <div className={align === "center" ? "text-center" : "text-left"}>
-        <div className="text-[length:var(--dash-fs-sm)] font-medium leading-snug text-[var(--dash-label)] md:text-[length:var(--dash-fs-md)]">
-          {label}
-        </div>
-        <div
-          className={`mt-1 font-bold leading-none tracking-tight ${VALUE_SIZE[size]} ${
-            showUnavailable ? "text-[var(--dash-warning)]" : valueClass
-          }`}
-          style={
-            showUnavailable
-              ? undefined
-              : { textShadow: "0 0 18px rgba(84, 233, 255, 0.35)" }
-          }
-        >
-          {showUnavailable ? "—" : display}
-        </div>
+      {icon ? <KpiPedestal icon={icon} tone={iconTone} /> : null}
+      <div className={`flex min-w-0 flex-col gap-[0.2em] ${end ? "items-end text-right" : "text-left"}`}>
+        {order === "label-first" ? (
+          <>
+            {labelEl}
+            {valueEl}
+          </>
+        ) : (
+          <>
+            {valueEl}
+            {labelEl}
+          </>
+        )}
         {support ? (
-          <div className="mt-1.5 text-[length:var(--dash-fs-xs)] text-[var(--dash-text-muted)]">
+          <div className="text-[length:var(--dash-fs-xs)] leading-tight text-[var(--dash-text-muted)]">
             {support}
           </div>
         ) : null}
         {availability && availability !== "available" ? (
-          <div className="mt-1 text-[length:var(--dash-fs-xs)] text-[var(--dash-warning)]">
+          <div className="text-[length:var(--dash-fs-xs)] leading-tight text-[var(--dash-warning)]">
             {availabilityLabel(availability)}
           </div>
         ) : null}
@@ -82,18 +118,16 @@ export function KpiMetric({
     </>
   );
 
-  const layout =
-    align === "center"
-      ? `flex flex-col items-center gap-2 ${className}`
-      : `flex items-start gap-3 ${className}`;
+  const layout = `flex min-w-0 items-center gap-[var(--dash-gap)] ${end ? "flex-row-reverse" : ""} ${className}`;
+  const spoken = `${label}: ${showUnavailable ? "unavailable" : display}`;
 
   if (onOpenDetail) {
     return (
       <button
         type="button"
         onClick={onOpenDetail}
-        className={`${layout} rounded-md bg-transparent p-1 text-left transition hover:bg-white/[0.04] focus-visible:outline-none`}
-        aria-label={`${label}: ${showUnavailable ? "unavailable" : display}. Open details`}
+        className={`${layout} rounded-md bg-transparent p-1 text-left transition hover:bg-white/[0.04]`}
+        aria-label={`${spoken}. Open details`}
       >
         {content}
       </button>
@@ -101,35 +135,8 @@ export function KpiMetric({
   }
 
   return (
-    <div
-      className={layout}
-      aria-label={`${label}: ${showUnavailable ? "unavailable" : display}`}
-    >
+    <div className={layout} role="group" aria-label={spoken}>
       {content}
     </div>
-  );
-}
-
-export function KpiIconShell({
-  children,
-  tone = "cyan",
-}: {
-  children: ReactNode;
-  tone?: "cyan" | "danger" | "warning";
-}) {
-  const toneClass =
-    tone === "danger"
-      ? "bg-[rgba(255,90,106,0.12)] text-[var(--dash-danger)] shadow-[0_0_16px_rgba(255,90,106,0.25)]"
-      : tone === "warning"
-        ? "bg-[rgba(240,180,41,0.12)] text-[var(--dash-warning)]"
-        : "bg-[rgba(0,229,255,0.1)] text-[var(--dash-cyan)] shadow-[0_0_16px_rgba(0,229,255,0.28)]";
-
-  return (
-    <span
-      className={`flex size-10 shrink-0 items-center justify-center rounded-2xl ${toneClass} md:size-[clamp(2.5rem,5.5vh,3.5rem)]`}
-      aria-hidden
-    >
-      {children}
-    </span>
   );
 }

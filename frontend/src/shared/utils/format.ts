@@ -59,10 +59,36 @@ export function formatMetricValue(
   return unit ? `${formatted} ${unit}` : formatted;
 }
 
+/** Number and unit as separate strings — the reference renders units smaller than values. */
+export function formatMetricParts(
+  value: number | null | undefined,
+  unit: string,
+  precision: number,
+): { number: string; unit: string } {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return { number: "—", unit: "" };
+  }
+  return {
+    number: formatNumber(value, {
+      minimumFractionDigits: precision,
+      maximumFractionDigits: precision,
+    }),
+    unit,
+  };
+}
+
+/** Distribution shares are 0–1 fractions; charts and labels need 0–100. */
+export function shareToPercent(share: number | null | undefined): number | null {
+  if (share === null || share === undefined || Number.isNaN(share)) {
+    return null;
+  }
+  return share * 100;
+}
+
 export function formatClock(
   date: Date,
   timeZone: string,
-  locale = DEFAULT_LOCALE,
+  locale = "en-US",
 ): { dateLabel: string; timeLabel: string; periodLabel: string } {
   // Figma: "Tuesday March 17, 2026" (no weekday comma)
   const dateLabel = new Intl.DateTimeFormat(locale, {

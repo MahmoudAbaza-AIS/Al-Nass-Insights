@@ -44,11 +44,15 @@ const AlNassPreset = definePreset(Aura, {
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <PrimeReactProvider
+      preflight={false}
       theme={{
         preset: AlNassPreset,
         options: {
           darkModeSelector: ".dash-dark",
-          cssLayer: true,
+          // Tailwind's preflight is the element reset (hence preflight={false}); the theme layer
+          // sits above it so PrimeReact components keep their styles, and below utilities so
+          // className overrides still win.
+          cssLayer: { name: "primeui", order: "theme, base, primeui, components, utilities" },
         },
       }}
     >

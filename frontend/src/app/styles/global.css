@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "./tokens.css";
 
+/*
+ * `md` is the fit-to-viewport layout. It also needs enough height: phones in landscape
+ * (e.g. 844Ã—390) keep the scrolling mobile flow instead of a crushed no-scroll grid.
+ * Keep in sync with the @media blocks below.
+ */
+@custom-variant md (@media (min-width: 768px) and (min-height: 500px));
+
 @theme {
   --color-dash-bg: var(--dash-bg);
   --color-dash-bg-deep: var(--dash-bg-deep);
@@ -43,143 +50,313 @@ body {
 .dash-app-bg {
   /* Figma frame base #082936 + centered cyan bloom (shared across all dashboards) */
   background:
-    radial-gradient(ellipse 50% 55% at 52% 52%, rgba(0, 229, 255, 0.14), transparent 70%),
+    radial-gradient(ellipse 50% 55% at 52% 55%, rgba(0, 229, 255, 0.13), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 50%, transparent 55%, rgba(2, 16, 22, 0.55) 100%),
     #082936;
   position: relative;
-  overflow-x: hidden;
   min-height: 100vh;
+  isolation: isolate;
 }
 
 .dash-app-bg::before {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: -1;
   pointer-events: none;
   opacity: 0.2;
-  background-image:
-    repeating-linear-gradient(
-      -28deg,
-      transparent,
-      transparent 22px,
-      rgba(120, 180, 200, 0.06) 22px,
-      rgba(120, 180, 200, 0.06) 23px
-    );
+  background-image: repeating-linear-gradient(
+    -28deg,
+    transparent,
+    transparent 22px,
+    rgba(120, 180, 200, 0.06) 22px,
+    rgba(120, 180, 200, 0.06) 23px
+  );
 }
 
-/* Central illustrations — blend into canvas; height capped on no-scroll layouts */
-.dash-illustration {
-  mix-blend-mode: lighten;
-  filter: drop-shadow(0 0 28px rgba(0, 229, 255, 0.18));
-  max-width: 100%;
+.dash-header {
+  background: var(--dash-header-bg);
+  box-shadow: inset 0 -1px 0 rgba(84, 233, 255, 0.08);
+}
+
+/* Header icon actions (Refresh / Presentation / Sign out) â€” unlayered so they win over theme layers */
+.dash-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  padding: 0;
+  border-radius: var(--dash-radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1rem;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.dash-icon-btn:hover:not(:disabled) {
+  color: var(--dash-cyan);
+  background: rgba(84, 233, 255, 0.08);
+  border-color: rgba(84, 233, 255, 0.25);
+}
+
+.dash-icon-btn:focus-visible {
+  color: var(--dash-cyan);
+  box-shadow: var(--dash-focus-ring);
+}
+
+.dash-icon-btn:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+
+.dash-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  inline-size: var(--dash-nav-btn);
+  block-size: var(--dash-nav-btn);
+  border-radius: var(--dash-radius-nav);
+  border: 1px solid var(--dash-nav-idle-border);
+  background: var(--dash-nav-idle);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: var(--dash-nav-icon);
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.dash-nav-btn:hover {
+  color: #fff;
+  border-color: rgba(84, 233, 255, 0.35);
+}
+
+.dash-nav-btn[aria-current="page"] {
+  color: var(--dash-cyan);
+  border-color: var(--dash-nav-active-border);
+  background: var(--dash-nav-active);
+  box-shadow: var(--dash-glow-strong);
+}
+
+/* KPI illustration pedestal â€” dark elliptical disc the reference icons stand on */
+.dash-pedestal {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  inline-size: var(--dash-pedestal-w);
+  block-size: calc(var(--dash-pedestal-w) * 0.78);
+}
+
+.dash-pedestal::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  block-size: 52%;
+  border-radius: 50%;
+  background: var(--dash-pedestal);
+  box-shadow: inset 0 1px 0 rgba(84, 233, 255, 0.06);
+}
+
+.dash-nav-btn > .pi {
+  font-size: var(--dash-nav-icon);
+}
+
+.dash-icon-btn > .pi {
+  font-size: inherit;
+}
+
+.dash-pedestal > i {
+  position: relative;
+  margin-bottom: 22%;
+  font-size: var(--dash-kpi-icon);
+  filter: drop-shadow(0 0 10px currentColor);
+}
+
+/* Central illustrations â€” on tablet/desktop they fill the grid area they are given */
+.dash-illus {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dash-illus__glow {
+  position: absolute;
+  inset: 8% 6%;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 229, 255, 0.2), transparent 100%);
+}
+
+.dash-illus__img {
+  position: relative;
+  display: block;
+  width: 100%;
   height: auto;
+  max-height: 55vh;
   object-fit: contain;
+  filter: drop-shadow(0 0 28px rgba(0, 229, 255, 0.16));
+}
+
+/* Hard-edged crops (opaque backdrop) fade into the canvas instead of showing a box */
+.dash-illus__img--feather {
+  mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%);
+}
+
+/* Fades a stray neighbouring-layer fragment caught in the asset's bottom-end corner */
+.dash-illus__img--fade-corner {
+  mask-image: linear-gradient(to top left, transparent 11.5%, #000 14%);
+}
+
+.dash-section-rule {
+  height: 1px;
+  width: 100%;
+  max-width: var(--dash-section-rule-w);
+  background: linear-gradient(90deg, rgba(201, 219, 225, 0.55), rgba(201, 219, 225, 0));
+  margin-top: 0.4em;
+}
+
+.dash-glow-text {
+  text-shadow: 0 0 18px rgba(84, 233, 255, 0.35);
 }
 
 .dash-hub {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 1680px;
-  margin-inline: auto;
-  gap: clamp(0.75rem, 1.5vw, 1.5rem);
   min-width: 0;
-}
-
-.dash-glow-text {
-  color: var(--dash-cyan);
-  text-shadow: 0 0 18px rgba(61, 231, 255, 0.35);
-}
-
-.dash-section-rule {
-  height: 1px;
-  width: 100%;
-  max-width: 14rem;
-  background: linear-gradient(90deg, rgba(61, 231, 255, 0.55), transparent);
-  margin-top: 0.35rem;
+  gap: var(--dash-gap);
 }
 
 /*
- * Zero-scroll layouts: tablet + desktop (Tailwind `md` = 768px).
+ * Tablet + desktop (Tailwind `md` = 768px): every route fits the viewport without
+ * document or nested scrolling. Layout sizes derive from --u so the composition keeps
+ * the 1920Ã—1080 reference proportions; floors keep text readable on short screens.
  * Mobile (<768px) keeps normal document scrolling.
  */
-@media (min-width: 768px) {
+@media (min-width: 768px) and (min-height: 500px) {
+  :root {
+    --u: min(1vw, 1.7778vh);
+    --dash-header-height: max(3.25rem, 4.2 * var(--u));
+    --dash-nav-btn: max(2.5rem, 3.35 * var(--u));
+    --dash-nav-icon: max(1.15rem, 1.6 * var(--u));
+    --dash-nav-gap: max(0.6rem, 1.05 * var(--u));
+    --dash-nav-width: calc(var(--dash-nav-btn) + 2 * max(0.75rem, 1.5 * var(--u)));
+    --dash-page-pad: max(0.75rem, 1.6 * var(--u));
+    --dash-gap: max(0.5rem, 1.05 * var(--u));
+    --dash-gap-lg: max(0.75rem, 2.1 * var(--u));
+    --dash-radius-nav: max(0.5rem, 0.62 * var(--u));
+
+    --dash-fs-xs: max(0.6875rem, 0.68 * var(--u));
+    --dash-fs-sm: max(0.75rem, 0.8 * var(--u));
+    --dash-fs-md: max(0.8125rem, 0.9 * var(--u));
+    --dash-fs-title: max(1.05rem, 1.3 * var(--u));
+    --dash-fs-section: max(0.875rem, 1.05 * var(--u));
+    --dash-fs-label: max(0.75rem, 0.88 * var(--u));
+    --dash-fs-value: max(1.3rem, 1.9 * var(--u));
+    --dash-fs-value-lg: max(1.4rem, 2.1 * var(--u));
+    --dash-fs-unit: max(0.8rem, 1 * var(--u));
+    --dash-fs-clock-date: max(0.75rem, 0.9 * var(--u));
+    --dash-fs-clock-time: max(0.875rem, 1.12 * var(--u));
+    --dash-fs-counter-label: max(0.875rem, 1.05 * var(--u));
+    --dash-fs-digit: max(1.4rem, 2.6 * var(--u));
+    --dash-fs-chart: max(0.625rem, 0.62 * var(--u));
+
+    --dash-pedestal-w: max(3.25rem, 4.6 * var(--u));
+    --dash-kpi-icon: max(1.25rem, 1.9 * var(--u));
+    --dash-gauge-lg: max(5.5rem, 7.8 * var(--u));
+    --dash-gauge-md: max(4.75rem, 6.2 * var(--u));
+    --dash-gauge-sm: max(4rem, 4.4 * var(--u));
+    --dash-chart-h: max(7.5rem, 10.5 * var(--u));
+    --dash-chart-w: max(16rem, 21 * var(--u));
+    --dash-section-rule-w: max(7rem, 9 * var(--u));
+
+    --dash-digit-w: max(1.9rem, 3.1 * var(--u));
+    --dash-digit-h: max(2.15rem, 3.5 * var(--u));
+    --dash-digit-gap: max(0.35rem, 0.85 * var(--u));
+    --dash-digit-radius: max(0.4rem, 0.5 * var(--u));
+  }
+
   html,
   body,
   #root {
     height: 100%;
-    max-height: 100%;
-    overflow: hidden;
-  }
-
-  body {
-    overscroll-behavior: none;
   }
 
   .dash-app-bg {
-    min-height: 0;
+    display: flex;
+    flex-direction: column;
     height: 100dvh;
-    max-height: 100dvh;
-    overflow: hidden;
+    min-height: 0;
   }
 
   .dash-shell-body {
-    min-height: 0;
+    display: flex;
     flex: 1 1 auto;
-    overflow: hidden;
+    min-height: 0;
   }
 
   .dash-main {
-    min-height: 0;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
   }
 
   .dash-main > * {
-    min-height: 0;
     flex: 1 1 auto;
+    min-height: 0;
   }
 
   .dash-hub {
+    display: grid;
     height: 100%;
     min-height: 0;
-    max-height: 100%;
-    gap: clamp(0.4rem, 1.1vh, 1.1rem);
-    overflow: hidden;
+    max-width: calc(110 * var(--u));
+    margin-inline: auto;
   }
 
-  /* Viewport-aware type / chrome so short laptops still fit without clipping */
+  .dash-illus {
+    height: 100%;
+    width: 100%;
+    container-type: size;
+  }
+
+  /* Box matches the artwork's aspect ratio so masks align with the bitmap, not a letterbox */
+  .dash-illus__img {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: min(100cqw, 100cqh * var(--dash-illus-ratio, 1));
+    height: auto;
+    max-height: none;
+  }
+
+  .dash-icon-btn {
+    inline-size: max(2rem, 2.1 * var(--u));
+    block-size: max(2rem, 2.1 * var(--u));
+    font-size: max(0.9rem, 0.95 * var(--u));
+  }
+}
+
+/* Portrait tablets: width is the constraint, so the scale unit follows width more generously */
+@media (min-width: 768px) and (min-height: 500px) and (orientation: portrait) {
   :root {
-    --dash-nav-width: clamp(3.75rem, 3.6vw, 5.5rem);
-    --dash-nav-btn: clamp(2.4rem, 5.2vh, 4.75rem);
-    --dash-nav-icon: clamp(1.2rem, 2.6vh, 2.75rem);
-    --dash-nav-gap: clamp(0.45rem, 1.4vh, 1.75rem);
-    --dash-header-height: clamp(3.5rem, 8vh, 5.5rem);
-    --dash-fs-title: clamp(1.05rem, 2.2vh, 1.85rem);
-    --dash-fs-clock-date: clamp(0.7rem, 1.5vh, 1.1rem);
-    --dash-fs-clock-time: clamp(0.85rem, 1.9vh, 1.35rem);
-    --dash-fs-counter-label: clamp(0.7rem, 1.6vh, 1.15rem);
-    --dash-fs-digit: clamp(1.25rem, 4.2vh, 3.25rem);
-    --dash-digit-w: clamp(1.7rem, 4.5vh, 3.75rem);
-    --dash-digit-h: clamp(1.9rem, 5vh, 4.1rem);
-    --dash-digit-gap: clamp(0.3rem, 0.8vh, 0.85rem);
-  }
-
-  .dash-illustration {
-    max-height: min(38dvh, 100%);
-    width: auto;
-  }
-
-  .dash-hub-illustration {
-    min-height: 0;
-    max-height: min(40dvh, 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .dash-hub-illustration img {
-    max-height: min(38dvh, 100%);
+    --u: min(1.45vw, 1.05vh);
   }
 }
 

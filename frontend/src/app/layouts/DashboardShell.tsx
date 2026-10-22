@@ -60,7 +60,7 @@ export function DashboardShell({
   return (
     <div
       ref={shellRef}
-      className="dash-app-bg flex h-full min-h-screen flex-col text-[var(--dash-text)] md:min-h-0"
+      className="dash-app-bg flex min-h-screen flex-col text-[var(--dash-text)] md:min-h-0"
     >
       <a
         href="#main-content"
@@ -85,7 +85,7 @@ export function DashboardShell({
         userDisplayName={userDisplayName}
         onLogout={onLogout}
       />
-      <div className="dash-shell-body relative z-[1] flex min-h-0 flex-1">
+      <div className="dash-shell-body relative z-[1] flex min-h-0 flex-1 flex-col md:flex-row">
         <aside className="hidden shrink-0 self-stretch md:block" aria-label="Primary">
           <DepartmentNavigation
             items={registry}
@@ -93,7 +93,7 @@ export function DashboardShell({
             onNavigate={onNavigate}
           />
         </aside>
-        <div className="absolute inset-x-0 top-0 z-[2] border-b border-white/5 bg-[rgba(8,41,54,0.92)] backdrop-blur-sm md:hidden">
+        <div className="border-b border-white/5 md:hidden">
           <DepartmentNavigation
             items={registry}
             activeId={activeId}
@@ -103,7 +103,7 @@ export function DashboardShell({
         </div>
         <main
           id="main-content"
-          className="dash-main min-w-0 flex-1 px-3 pb-4 pt-14 md:overflow-hidden md:px-4 md:pb-3 md:pt-1 lg:px-5 xl:px-6"
+          className="dash-main min-w-0 flex-1 px-[var(--dash-page-pad)] py-4 md:ps-0 md:pt-[calc(var(--dash-page-pad)*0.6)] md:pb-[var(--dash-page-pad)]"
         >
           {children}
         </main>

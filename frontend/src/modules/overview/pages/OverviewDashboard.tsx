@@ -4,9 +4,9 @@ import { DigitalCounter } from "@shared/visualizations/DigitalCounter";
 import { RadialGauge } from "@shared/visualizations/RadialGauge";
 import { DonutChart } from "@shared/visualizations/DonutChart";
 import { CylinderBars } from "@shared/visualizations/CylinderBars";
-import { KpiIconShell, KpiMetric } from "@shared/components/KpiMetric";
+import { IsometricBars } from "@shared/visualizations/IsometricBars";
+import { KpiMetric } from "@shared/components/KpiMetric";
 import { DashboardSection } from "@shared/components/DashboardSection";
-import { IllustrationPanel } from "@shared/components/IllustrationPanel";
 import { KpiDetailDialog } from "@shared/components/KpiDetailDialog";
 import { WidgetErrorBoundary } from "@shared/components/ErrorBoundary";
 import { getMetricDefinition } from "@contracts/metricDefinitions";
@@ -19,106 +19,80 @@ export function OverviewDashboard({ data }: { data: DashboardPayload }) {
   const m = data.metrics;
 
   return (
-    <div className="dash-hub h-full min-h-0">
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(11rem,1fr)_minmax(16rem,1.35fr)_minmax(11rem,1fr)] lg:grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-4">
-        <DashboardSection className="lg:col-start-1 lg:row-start-1">
-          <WidgetErrorBoundary title="Application request">
-            <CylinderBars
-              label="Application Request"
-              segments={data.distributions.application_request ?? []}
-            />
-          </WidgetErrorBoundary>
-        </DashboardSection>
+    <div className="dash-hub md:landscape:grid-cols-[minmax(0,1fr)_minmax(0,2.6fr)_minmax(0,1fr)] md:landscape:grid-rows-[auto_minmax(0,1fr)_auto] md:portrait:grid-cols-2 md:portrait:grid-rows-[auto_minmax(0,1fr)_auto_auto]">
+      <div className="flex flex-wrap justify-center gap-x-[18%] gap-y-4 md:landscape:col-start-2 md:landscape:row-start-1 md:portrait:col-span-2">
+        <DigitalCounter label="Total ER Visits" value={m["er.visits.total"]?.value ?? null} />
+        <DigitalCounter label="Total OPD Visits" value={m["opd.visits.attended"]?.value ?? null} />
+      </div>
 
-        <div className="flex flex-col items-center gap-4 lg:col-start-2 lg:row-span-2">
-          <div className="flex w-full max-w-3xl flex-wrap justify-center gap-10 lg:justify-between">
-            <DigitalCounter label="Total ER Visits" value={m["er.visits.total"]?.value ?? null} />
-            <DigitalCounter
-              label="Total OPD Visits"
-              value={m["opd.visits.attended"]?.value ?? null}
-            />
-          </div>
-          <IllustrationPanel label="Central hospital building illustration" aspectRatio="auto">
-            <HospitalBuildingIllustration />
-          </IllustrationPanel>
-        </div>
+      <HospitalBuildingIllustration className="md:landscape:col-start-2 md:landscape:row-start-2 md:portrait:col-span-2" />
 
-        <DashboardSection className="lg:col-start-3 lg:row-start-1">
-          <WidgetErrorBoundary title="Outpatient clinics">
-            <CylinderBars
-              label="Outpatient Clinics"
-              segments={data.distributions.opd_appointment ?? []}
-            />
-          </WidgetErrorBoundary>
-        </DashboardSection>
-
-        <DashboardSection className="flex justify-center lg:col-start-1 lg:row-start-2">
-          <RadialGauge
-            label="OR Utilization Rate"
-            value={m["or.utilization_rate"]?.value ?? null}
-            size={130}
-            strokeWidth={12}
+      <div className="grid grid-cols-1 gap-[var(--dash-gap)] sm:grid-cols-3 md:landscape:col-start-2 md:landscape:row-start-3 md:portrait:col-span-2">
+        <DashboardSection title="Emergency" className="sm:justify-self-start">
+          <KpiMetric
+            label="Door-to-Doctor Time"
+            reading={m["er.door_to_doctor_minutes"]}
+            unit="min"
+            icon="pi-users"
+            order="value-first"
+            onOpenDetail={() => setDetailId("er.door_to_doctor_minutes")}
           />
         </DashboardSection>
-
-        <DashboardSection className="lg:col-start-3 lg:row-start-2">
-          <WidgetErrorBoundary title="Call center mix">
-            <div className="flex flex-col items-center gap-2">
-              <h3 className="m-0 text-[length:var(--dash-fs-sm)] font-medium text-white">
-                Call Center
-              </h3>
-              <DonutChart
-                label="Call Center"
-                segments={data.distributions.call_direction ?? []}
-                colors={["var(--dash-chart-inbound)", "var(--dash-chart-outbound)"]}
-                size={130}
-                strokeWidth={14}
-              />
-            </div>
-          </WidgetErrorBoundary>
+        <DashboardSection title="Inpatient" className="sm:justify-self-center sm:pt-[calc(var(--dash-gap)*2)]">
+          <KpiMetric
+            label="Bed Occupancy Rate"
+            reading={m["inpatient.bed_occupancy_rate"]}
+            unit="%"
+            icon="pi-inbox"
+            order="value-first"
+            onOpenDetail={() => setDetailId("inpatient.bed_occupancy_rate")}
+          />
+        </DashboardSection>
+        <DashboardSection title="Clinical" className="sm:justify-self-end">
+          <KpiMetric
+            label="Recovery Rate"
+            reading={m["clinical.recovery_rate"]}
+            unit="%"
+            icon="pi-heart"
+            order="value-first"
+            onOpenDetail={() => setDetailId("clinical.recovery_rate")}
+          />
         </DashboardSection>
       </div>
 
-      <div className="mx-auto grid w-full max-w-5xl shrink-0 gap-4 sm:grid-cols-3 md:gap-5">
-        <KpiMetric
-          label="Door-to-Doctor Time"
-          reading={m["er.door_to_doctor_minutes"]}
-          unit="min"
-          supportingText="Emergency"
-          size="lg"
-          icon={
-            <KpiIconShell>
-              <i className="pi pi-users text-xl" />
-            </KpiIconShell>
-          }
-          onOpenDetail={() => setDetailId("er.door_to_doctor_minutes")}
-        />
-        <KpiMetric
-          label="Bed Occupancy Rate"
-          reading={m["inpatient.bed_occupancy_rate"]}
-          unit="%"
-          supportingText="Inpatient"
-          size="lg"
-          icon={
-            <KpiIconShell>
-              <i className="pi pi-inbox text-xl" />
-            </KpiIconShell>
-          }
-          onOpenDetail={() => setDetailId("inpatient.bed_occupancy_rate")}
-        />
-        <KpiMetric
-          label="Recovery Rate"
-          reading={m["clinical.recovery_rate"]}
-          unit="%"
-          supportingText="Clinical"
-          size="lg"
-          icon={
-            <KpiIconShell>
-              <i className="pi pi-replay text-xl" />
-            </KpiIconShell>
-          }
-          onOpenDetail={() => setDetailId("clinical.recovery_rate")}
-        />
+      <div className="flex flex-col gap-[var(--dash-gap-lg)] md:landscape:col-start-1 md:landscape:row-span-3 md:landscape:row-start-1 md:landscape:justify-around md:portrait:row-start-4">
+        <DashboardSection title="Application Request">
+          <WidgetErrorBoundary title="Application request">
+            <CylinderBars label="Application Request" segments={data.distributions.application_request ?? []} />
+          </WidgetErrorBoundary>
+        </DashboardSection>
+        <DashboardSection title="Operating Room Usage">
+          <div className="flex justify-center">
+            <RadialGauge
+              label="OR Utilization Rate"
+              value={m["or.utilization_rate"]?.value ?? null}
+              displaySize="var(--dash-gauge-lg)"
+            />
+          </div>
+        </DashboardSection>
+      </div>
+
+      <div className="flex flex-col gap-[var(--dash-gap-lg)] md:landscape:col-start-3 md:landscape:row-span-3 md:landscape:row-start-1 md:landscape:justify-around md:portrait:row-start-4">
+        <DashboardSection title="Outpatient clinics">
+          <WidgetErrorBoundary title="Outpatient clinics">
+            <IsometricBars label="Outpatient clinics" segments={data.distributions.opd_appointment ?? []} />
+          </WidgetErrorBoundary>
+        </DashboardSection>
+        <DashboardSection title="Call Center">
+          <WidgetErrorBoundary title="Call center mix">
+            <DonutChart
+              label="Call Center"
+              segments={data.distributions.call_direction ?? []}
+              colors={["var(--dash-chart-inbound)", "var(--dash-chart-outbound)"]}
+              displaySize="var(--dash-gauge-lg)"
+            />
+          </WidgetErrorBoundary>
+        </DashboardSection>
       </div>
 
       <KpiDetailDialog

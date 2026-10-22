@@ -1,6 +1,5 @@
 import type { DashboardPayload } from "@contracts/metrics";
-import { KpiIconShell, KpiMetric } from "@shared/components/KpiMetric";
-import { IllustrationPanel } from "@shared/components/IllustrationPanel";
+import { KpiMetric } from "@shared/components/KpiMetric";
 import { StackedBarChart } from "@shared/visualizations/StackedBarChart";
 import { LineTrend } from "@shared/visualizations/LineTrend";
 import { WidgetErrorBoundary } from "@shared/components/ErrorBoundary";
@@ -13,76 +12,54 @@ export function CallCenterDashboard({ data }: { data: DashboardPayload }) {
   const abandon = data.series?.["callcenter.abandon_trend"] ?? [];
 
   return (
-    <div className="dash-hub h-full min-h-0">
-      <div className="grid min-h-0 flex-1 items-center gap-4 lg:grid-cols-[minmax(12rem,1fr)_minmax(14rem,20rem)_minmax(12rem,1fr)] lg:gap-5">
-        <div className="flex flex-col gap-6 lg:items-start lg:gap-8">
-          <KpiMetric
-            label="Total Call Volume"
-            reading={m["callcenter.volume_total"]}
-            supportingText={m["callcenter.volume_total"]?.supportingText ?? "Inbound & Outbound"}
-            size="lg"
-            icon={
-              <KpiIconShell>
-                <i className="pi pi-phone text-xl" />
-              </KpiIconShell>
-            }
-          />
-          <KpiMetric
-            label="Average Handle Time"
-            reading={m["callcenter.aht"]}
-            unit="min"
-            precision={2}
-            size="lg"
-            icon={
-              <KpiIconShell>
-                <i className="pi pi-hourglass text-xl" />
-              </KpiIconShell>
-            }
-          />
-        </div>
+    <div className="dash-hub md:landscape:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)] md:landscape:grid-rows-[auto_auto_minmax(0,1fr)] md:portrait:grid-cols-2 md:portrait:grid-rows-[auto_auto_minmax(0,1fr)_auto]">
+      <KpiMetric
+        label="Total Call Volume"
+        reading={m["callcenter.volume_total"]}
+        supportingText={m["callcenter.volume_total"]?.supportingText ?? "Inbound & Outbound"}
+        icon="pi-phone"
+        size="lg"
+        className="justify-self-center md:landscape:col-start-1 md:landscape:row-start-1 md:landscape:justify-self-end"
+      />
+      <KpiMetric
+        label="Service Level"
+        reading={m["callcenter.service_level_20s"]}
+        unit="%"
+        supportingText={m["callcenter.service_level_20s"]?.supportingText ?? "Answered within 20 Sec"}
+        icon="pi-user"
+        iconPosition="end"
+        size="lg"
+        className="justify-self-center md:landscape:col-start-3 md:landscape:row-start-1 md:landscape:justify-self-start"
+      />
+      <KpiMetric
+        label="Average Handle Time"
+        reading={m["callcenter.aht"]}
+        unit="min"
+        precision={2}
+        icon="pi-hourglass"
+        size="lg"
+        className="justify-self-center md:landscape:col-start-1 md:landscape:row-start-2"
+      />
+      <KpiMetric
+        label="Abandoned Calls"
+        reading={m["callcenter.abandoned_rate"]}
+        unit="%"
+        tone="critical"
+        icon="pi-exclamation-triangle"
+        iconTone="danger"
+        iconPosition="end"
+        size="lg"
+        className="justify-self-center md:landscape:col-start-3 md:landscape:row-start-2"
+      />
 
-        <IllustrationPanel label="Call center illustration" aspectRatio="auto">
-          <CallCenterIllustration />
-        </IllustrationPanel>
+      <CallCenterIllustration className="md:landscape:col-start-2 md:landscape:row-span-3 md:landscape:row-start-1 md:portrait:col-span-2" />
 
-        <div className="flex flex-col gap-6 lg:items-start lg:gap-8">
-          <KpiMetric
-            label="Service Level"
-            reading={m["callcenter.service_level_20s"]}
-            unit="%"
-            supportingText={
-              m["callcenter.service_level_20s"]?.supportingText ?? "Answered within 20 Sec"
-            }
-            size="lg"
-            icon={
-              <KpiIconShell>
-                <i className="pi pi-user text-xl" />
-              </KpiIconShell>
-            }
-          />
-          <KpiMetric
-            label="Abandoned Calls"
-            reading={m["callcenter.abandoned_rate"]}
-            unit="%"
-            tone="critical"
-            size="lg"
-            icon={
-              <KpiIconShell tone="danger">
-                <i className="pi pi-exclamation-triangle text-xl" />
-              </KpiIconShell>
-            }
-          />
-        </div>
-      </div>
-
-      <div className="grid min-h-0 shrink-0 gap-4 lg:grid-cols-2 lg:gap-6">
+      <div className="md:landscape:col-start-1 md:landscape:row-start-3 md:landscape:self-end">
         <WidgetErrorBoundary title="Call volume chart">
-          <StackedBarChart
-            label="Call Volume Overview"
-            inbound={inbound}
-            outbound={outbound}
-          />
+          <StackedBarChart label="Call Volume Overview" inbound={inbound} outbound={outbound} />
         </WidgetErrorBoundary>
+      </div>
+      <div className="md:landscape:col-start-3 md:landscape:row-start-3 md:landscape:self-center md:landscape:justify-self-end">
         <WidgetErrorBoundary title="Abandon trend">
           <LineTrend label="Abandon Rate" points={abandon} unit="%" maxY={80} />
         </WidgetErrorBoundary>
