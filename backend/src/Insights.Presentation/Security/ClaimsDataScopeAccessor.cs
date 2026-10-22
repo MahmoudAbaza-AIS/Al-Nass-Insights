@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using Insights.Application.Security;
-using Insights.Domain.Dashboards;
 
 namespace Insights.Presentation.Security;
 
@@ -34,16 +33,11 @@ public sealed class ClaimsDataScopeAccessor(IHttpContextAccessor httpContextAcce
             .SelectMany(c => c.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        // Privileged roles may receive wildcard access when dashboards were not mapped.
         if (dashboards.Count == 0 && (roles.Contains("executive") || roles.Contains("admin") || roles.Contains("Insights.Admin")))
             dashboards.Add("*");
 
-        if (dashboards.Count == 0)
-        {
-            // Development-friendly default when realm maps org but not dashboards yet — still requires auth + org.
-            foreach (var id in DashboardIds.All)
-                dashboards.Add(id);
-        }
-
+        // Empty dashboard set means no dashboard access — do not expand to all DASH-01..07.
         return new DataScope(org, dashboards, roles);
     }
 }

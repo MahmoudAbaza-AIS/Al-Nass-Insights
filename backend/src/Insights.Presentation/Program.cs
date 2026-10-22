@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Insights.Application;
 using Insights.Application.Security;
 using Insights.Infrastructure;
@@ -8,6 +9,8 @@ using Insights.Infrastructure.Persistence;
 using Insights.Presentation.Endpoints;
 using Insights.Presentation.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
@@ -77,6 +80,18 @@ else
     if (string.IsNullOrWhiteSpace(authOpts.SigningKey) || authOpts.SigningKey.Length < 32)
         throw new InvalidOperationException("Authentication:SigningKey must be at least 32 characters for LocalJwt.");
 
+    if (IsPlaceholderSigningKey(authOpts.SigningKey) && !builder.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException(
+            "Authentication:SigningKey is still a placeholder. Set a unique secret via environment configuration before running outside Development.");
+    }
+
+    if (authOpts.SeedDemoUser && builder.Environment.IsProduction())
+    {
+        throw new InvalidOperationException(
+            "Authentication:SeedDemoUser must be false in Production.");
+    }
+
     var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(authOpts.SigningKey));
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
@@ -99,6 +114,20 @@ else
 }
 
 builder.Services.AddAuthorization();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth-login", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
 
 // Browser origins for cross-origin calls (Vite / separate UI host). Empty = same-origin only.
 var corsOrigins = ParseCorsOrigins(builder.Configuration);
@@ -141,8 +170,6 @@ if (enableOpenApi)
     });
 }
 
-builder.Services.AddHybridCache();
-
 // One-shot owned-cache + catalog migration (deploy / local). Never targets customer Oracle.
 if (args.Contains("--migrate-app-cache", StringComparer.OrdinalIgnoreCase))
 {
@@ -159,6 +186,8 @@ if (args.Contains("--migrate-owned-sql", StringComparer.OrdinalIgnoreCase))
 }
 
 var app = builder.Build();
+
+EnsureOracleBackedDataPath(app);
 
 var cacheOpts = app.Configuration.GetSection(AppCacheOptions.SectionName).Get<AppCacheOptions>();
 if (cacheOpts is { Provider: "SqlServer" } && app.Configuration.GetValue("AppCache:RunMigrationsOnStartup", false))
@@ -178,6 +207,18 @@ app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
     {
+        var feature = context.Features.Get<IExceptionHandlerPathFeature>();
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("ExceptionHandler");
+        if (feature?.Error is not null)
+        {
+            logger.LogError(
+                feature.Error,
+                "Unhandled exception for {Method} {Path} (TraceId={TraceId})",
+                context.Request.Method,
+                context.Request.Path.Value,
+                context.TraceIdentifier);
+        }
+
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/problem+json";
         await context.Response.WriteAsJsonAsync(new
@@ -193,6 +234,7 @@ app.UseExceptionHandler(errorApp =>
 if (corsOrigins.Length > 0)
     app.UseCors(corsPolicyName);
 
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -214,6 +256,49 @@ if (enableOpenApi)
 }
 
 app.Run();
+
+static bool IsPlaceholderSigningKey(string signingKey) =>
+    signingKey.Contains("CHANGE_ME_TO_A_LONG_RANDOM_SECRET", StringComparison.OrdinalIgnoreCase);
+
+/// <summary>
+/// KPI numbers must originate from hospital Oracle via sync → app cache.
+/// Ban InMemory cache and disabled/placeholder Oracle outside Development.
+/// </summary>
+static void EnsureOracleBackedDataPath(WebApplication app)
+{
+    var cacheProvider = app.Configuration["AppCache:Provider"] ?? "Redis";
+    if (string.Equals(cacheProvider, "InMemory", StringComparison.OrdinalIgnoreCase)
+        && !app.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException(
+            "AppCache:Provider=InMemory is not allowed outside Development. Use Redis or SqlServer so Oracle-synced KPI values persist.");
+    }
+
+    var requireOracle =
+        app.Environment.IsProduction()
+        || string.Equals(app.Environment.EnvironmentName, "ppr", StringComparison.OrdinalIgnoreCase);
+
+    if (!requireOracle)
+        return;
+
+    var oracleEnabled = app.Configuration.GetValue("Sources:Oracle:Enabled", false);
+    var oracleCs = app.Configuration["Sources:Oracle:ConnectionString"] ?? string.Empty;
+    var syncEnabled = app.Configuration.GetValue("Synchronization:Enabled", true);
+
+    if (!syncEnabled)
+    {
+        throw new InvalidOperationException(
+            "Synchronization must be enabled so dashboards receive Oracle KPI values through the app cache.");
+    }
+
+    if (!oracleEnabled
+        || string.IsNullOrWhiteSpace(oracleCs)
+        || oracleCs.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException(
+            "Sources:Oracle must be enabled with a real connection string. Dashboard KPI values are not mocked; they are published from Oracle into the app cache.");
+    }
+}
 
 static string[] ParseCorsOrigins(IConfiguration configuration)
 {

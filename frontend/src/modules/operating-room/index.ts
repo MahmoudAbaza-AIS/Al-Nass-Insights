@@ -11,5 +11,7 @@ export const operatingRoomModule: DashboardModule = {
     icon: "or",
   },
   loadView: () =>
-    import("./OperatingRoomDashboard").then((m) => ({ default: m.OperatingRoomDashboard })),
+    import("./pages/OperatingRoomDashboard").then((m) => ({
+      default: m.OperatingRoomDashboard,
+    })),
 };

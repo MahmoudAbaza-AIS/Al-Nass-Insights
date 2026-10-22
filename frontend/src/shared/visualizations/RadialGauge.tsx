@@ -38,9 +38,10 @@ export function RadialGauge({
           minimumFractionDigits: precision,
           maximumFractionDigits: precision,
         })}${unit === "%" ? "%" : ""}`;
+  const stroke = TONE_STROKE[tone];
 
   return (
-    <figure className="m-0 flex flex-col items-center gap-2" aria-label={`${label}: ${display}`}>
+    <figure className="m-0 flex flex-col items-center gap-2.5" aria-label={`${label}: ${display}`}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img">
         <title>{`${label}: ${display}`}</title>
         <circle
@@ -51,25 +52,27 @@ export function RadialGauge({
           stroke="var(--dash-chart-track)"
           strokeWidth={strokeWidth}
         />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={TONE_STROKE[tone]}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          style={{ filter: `drop-shadow(0 0 6px ${TONE_STROKE[tone]})` }}
-        />
+        {pct !== null ? (
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            style={{ filter: `drop-shadow(0 0 8px ${stroke})` }}
+          />
+        ) : null}
         <text
           x="50%"
           y="50%"
           textAnchor="middle"
           dominantBaseline="central"
-          fill={TONE_STROKE[tone]}
+          fill={pct === null ? "var(--dash-text-muted)" : stroke}
           fontSize={size * 0.22}
           fontWeight={700}
           fontFamily="var(--dash-font)"
@@ -77,7 +80,7 @@ export function RadialGauge({
           {display}
         </text>
       </svg>
-      <figcaption className="text-center text-[length:var(--dash-fs-sm)] text-[var(--dash-label)]">
+      <figcaption className="max-w-[11rem] text-center text-[length:var(--dash-fs-sm)] leading-snug text-[var(--dash-label)]">
         {label}
       </figcaption>
     </figure>

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { PrimeReactProvider } from "@primereact/core";
 import Aura from "@primeuix/themes/aura";
 import { definePreset } from "@primeuix/themes";
-import { AuthProvider } from "@shared/providers/AuthProvider";
+import { AuthProvider } from "@modules/auth";
 import { DisplayPreferencesProvider } from "@shared/providers/DisplayPreferencesProvider";
 
 const AlNassPreset = definePreset(Aura, {

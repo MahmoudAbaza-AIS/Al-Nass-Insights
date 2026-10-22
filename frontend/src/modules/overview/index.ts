@@ -11,5 +11,5 @@ export const hospitalOverviewModule: DashboardModule = {
     icon: "overview",
   },
   loadView: () =>
-    import("./OverviewDashboard").then((m) => ({ default: m.OverviewDashboard })),
+    import("./pages/OverviewDashboard").then((m) => ({ default: m.OverviewDashboard })),
 };

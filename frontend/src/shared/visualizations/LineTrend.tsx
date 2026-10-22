@@ -16,8 +16,8 @@ export function LineTrend({
   maxY = 80,
   color = "var(--dash-cyan)",
 }: LineTrendProps) {
-  const width = 300;
-  const height = 150;
+  const width = 420;
+  const height = 200;
   const pad = { top: 12, right: 12, bottom: 28, left: 36 };
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
@@ -44,7 +44,7 @@ export function LineTrend({
       </h3>
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className="h-auto w-full max-w-md"
+        className="h-auto max-h-[min(22dvh,12rem)] w-full max-w-xl md:max-h-[min(28dvh,14rem)]"
         role="img"
         aria-label={`${label} trend`}
       >

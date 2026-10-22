@@ -2,7 +2,22 @@ import type { DashboardDataService } from "./dashboardDataService";
 import { createHttpDashboardDataService } from "./httpDashboardDataService";
 
 export { getApiBaseUrl, getDashboardPublicUrl, apiUrl } from "./config";
-export { apiFetch, ApiError, getStoredAccessToken, setStoredAccessToken } from "./httpClient";
+export {
+  apiFetch,
+  ApiError,
+  getStoredAccessToken,
+  setStoredAccessToken,
+  getStoredTokenExpiresAt,
+  setStoredTokenExpiresAt,
+  clearStoredAuth,
+  isStoredTokenExpired,
+} from "./httpClient";
+export {
+  createHttpDashboardDataService,
+  enrichPayloadFromWidgets,
+  parseExplanationPairs,
+  isAbortError,
+} from "./httpDashboardDataService";
 
 let singleton: DashboardDataService | null = null;
 

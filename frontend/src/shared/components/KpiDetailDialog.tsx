@@ -78,9 +78,11 @@ export function KpiDetailDialog({
               ) : (
                 <p>No reading available for this KPI.</p>
               )}
-              <p className="text-[length:var(--dash-fs-xs)] text-[var(--dash-text-subtle)]">
-                Fixture / demonstration data only — not verified clinical data.
-              </p>
+              {definition?.source ? (
+                <p className="text-[length:var(--dash-fs-xs)] text-[var(--dash-text-subtle)]">
+                  Source: {definition.source}
+                </p>
+              ) : null}
             </Dialog.Content>
           </Dialog.Popup>
         </Dialog.Positioner>

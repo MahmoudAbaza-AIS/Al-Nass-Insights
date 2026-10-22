@@ -13,7 +13,7 @@ public sealed class SqlServerUserStore(
 {
     public async Task<AppUser?> FindByUsernameAsync(string username, CancellationToken cancellationToken = default)
     {
-        await using var conn = OpenConnection();
+        await using var conn = await OpenConnectionAsync(cancellationToken);
         const string sql = """
             SELECT
                 user_id AS UserId,
@@ -37,7 +37,7 @@ public sealed class SqlServerUserStore(
 
     public async Task UpdateLastLoginAsync(Guid userId, DateTimeOffset atUtc, CancellationToken cancellationToken = default)
     {
-        await using var conn = OpenConnection();
+        await using var conn = await OpenConnectionAsync(cancellationToken);
         const string sql = """
             UPDATE auth.Users
             SET last_login_at_utc = @AtUtc
@@ -51,7 +51,7 @@ public sealed class SqlServerUserStore(
 
     public async Task EnsureDemoUserAsync(string passwordHash, CancellationToken cancellationToken = default)
     {
-        await using var conn = OpenConnection();
+        await using var conn = await OpenConnectionAsync(cancellationToken);
         const string sql = """
             IF NOT EXISTS (SELECT 1 FROM auth.Users WHERE username = N'demo')
             BEGIN
@@ -77,14 +77,14 @@ public sealed class SqlServerUserStore(
             logger.LogInformation("Seeded demo user (username: demo).");
     }
 
-    private SqlConnection OpenConnection()
+    private async Task<SqlConnection> OpenConnectionAsync(CancellationToken cancellationToken)
     {
         var cs = options.Value.ConnectionString;
         if (string.IsNullOrWhiteSpace(cs))
             throw new InvalidOperationException("Sources:SqlServerSymbols:ConnectionString is required for local JWT auth.");
 
         var conn = new SqlConnection(cs);
-        conn.Open();
+        await conn.OpenAsync(cancellationToken);
         return conn;
     }
 

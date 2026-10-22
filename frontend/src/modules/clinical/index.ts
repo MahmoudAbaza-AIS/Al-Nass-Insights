@@ -11,5 +11,5 @@ export const clinicalModule: DashboardModule = {
     icon: "clinical",
   },
   loadView: () =>
-    import("./ClinicalDashboard").then((m) => ({ default: m.ClinicalDashboard })),
+    import("./pages/ClinicalDashboard").then((m) => ({ default: m.ClinicalDashboard })),
 };

@@ -25,7 +25,11 @@ public static class DependencyInjection
         services.AddSingleton<OwnedSqlMigrator>();
         services.AddScoped<IUserStore, SqlServerUserStore>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
-        services.AddHostedService<DemoUserSeeder>();
+
+        // Demo user is opt-in (Authentication:SeedDemoUser). Never seed in Production by accident.
+        var seedDemo = configuration.GetSection(AuthenticationOptions.SectionName).GetValue("SeedDemoUser", false);
+        if (seedDemo)
+            services.AddHostedService<DemoUserSeeder>();
 
         var provider = configuration.GetSection(AppCacheOptions.SectionName).GetValue<string>("Provider") ?? "Redis";
         if (string.Equals(provider, "Redis", StringComparison.OrdinalIgnoreCase))

@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { DashboardHeader } from "@shared/components/DashboardHeader";
 import { DepartmentNavigation } from "@shared/components/DepartmentNavigation";
 import { useFullscreen } from "@shared/hooks/useFullscreen";
@@ -7,7 +7,7 @@ import type { DashboardId } from "@contracts/metrics";
 import {
   useDisplayPreferences,
   useDisplayPreferencesActions,
-} from "@shared/providers/DisplayPreferencesProvider";
+} from "@shared/providers/useDisplayPreferences";
 
 export interface DashboardShellProps {
   title: string;
@@ -22,6 +22,17 @@ export interface DashboardShellProps {
   userDisplayName?: string;
   onLogout?: () => void;
   children: ReactNode;
+}
+
+/** Removes PrimeUI unlicensed toast (#p-license-host) — closed shadow, so CSS cannot hide it. */
+function useStripPrimeLicenseBanner() {
+  useEffect(() => {
+    const strip = () => document.getElementById("p-license-host")?.remove();
+    strip();
+    const obs = new MutationObserver(strip);
+    obs.observe(document.body, { childList: true });
+    return () => obs.disconnect();
+  }, []);
 }
 
 export function DashboardShell({
@@ -42,13 +53,14 @@ export function DashboardShell({
   const prefs = useDisplayPreferences();
   const { setPresentationMode } = useDisplayPreferencesActions();
   const { isFullscreen, toggle } = useFullscreen(shellRef);
+  useStripPrimeLicenseBanner();
 
   const presentationMode = prefs.presentationMode || isFullscreen;
 
   return (
     <div
       ref={shellRef}
-      className="dash-app-bg flex min-h-screen flex-col text-[var(--dash-text)]"
+      className="dash-app-bg flex h-full min-h-screen flex-col text-[var(--dash-text)] md:min-h-0"
     >
       <a
         href="#main-content"
@@ -73,15 +85,15 @@ export function DashboardShell({
         userDisplayName={userDisplayName}
         onLogout={onLogout}
       />
-      <div className="relative z-[1] flex min-h-0 flex-1 flex-col md:flex-row">
-        <aside className="hidden border-r border-white/5 md:block" aria-label="Primary">
+      <div className="dash-shell-body relative z-[1] flex min-h-0 flex-1">
+        <aside className="hidden shrink-0 self-stretch md:block" aria-label="Primary">
           <DepartmentNavigation
             items={registry}
             activeId={activeId}
             onNavigate={onNavigate}
           />
         </aside>
-        <div className="border-b border-white/5 md:hidden">
+        <div className="absolute inset-x-0 top-0 z-[2] border-b border-white/5 bg-[rgba(8,41,54,0.92)] backdrop-blur-sm md:hidden">
           <DepartmentNavigation
             items={registry}
             activeId={activeId}
@@ -89,7 +101,10 @@ export function DashboardShell({
             compact
           />
         </div>
-        <main id="main-content" className="min-w-0 flex-1 overflow-auto px-3 py-4 md:px-6 md:py-5">
+        <main
+          id="main-content"
+          className="dash-main min-w-0 flex-1 px-3 pb-4 pt-14 md:overflow-hidden md:px-4 md:pb-3 md:pt-1 lg:px-5 xl:px-6"
+        >
           {children}
         </main>
       </div>

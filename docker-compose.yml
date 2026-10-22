@@ -94,6 +94,7 @@ services:
       Authentication__SigningKey: "${AUTH_JWT_SIGNING_KEY:?Set AUTH_JWT_SIGNING_KEY in the stack env file}"
       Authentication__TokenLifetimeMinutes: "${AUTH_TOKEN_LIFETIME_MINUTES:-480}"
       Authentication__DisableForLocalDevelopment: "${AUTH_DISABLE_FOR_LOCAL_DEVELOPMENT:-false}"
+      Authentication__SeedDemoUser: "${AUTH_SEED_DEMO_USER:-false}"
       Authentication__Authority: "${AUTH_AUTHORITY:-https://keycloak.example.local/realms/alnass}"
       Authentication__RequireHttpsMetadata: "${AUTH_REQUIRE_HTTPS_METADATA:-true}"
       Sources__SqlServerSymbols__RunMigrationsOnStartup: "${SYMBOLS_RUN_MIGRATIONS_ON_STARTUP:-true}"
@@ -102,7 +103,8 @@ services:
       AppCache__ConnectionString: "${APPCACHE_CONNECTION_STRING:-redis:6379}"
       AppCache__KeyPrefix: "${APPCACHE_KEY_PREFIX:-alnass}"
       AppCache__RunMigrationsOnStartup: "${APPCACHE_RUN_MIGRATIONS_ON_STARTUP:-false}"
-      Sources__Oracle__Enabled: "${ORACLE_ENABLED:-false}"
+      # KPI numbers come only from Oracle sync → app cache. Keep enabled when the hospital DB is reachable.
+      Sources__Oracle__Enabled: "${ORACLE_ENABLED:-true}"
       Sources__Oracle__ConnectionString: "${ORACLE_CONNECTION_STRING:-}"
       Sources__SqlServerSymbols__Enabled: "${SYMBOLS_ENABLED:-true}"
       Sources__SqlServerSymbols__ConnectionString: "${SYMBOLS_CONNECTION_STRING}"

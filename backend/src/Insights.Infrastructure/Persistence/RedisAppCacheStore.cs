@@ -38,7 +38,9 @@ public sealed class RedisAppCacheStore : IAppCacheStore, IDisposable
         _prefix = string.IsNullOrWhiteSpace(opts.KeyPrefix) ? "alnass" : opts.KeyPrefix.Trim().TrimEnd(':');
         _mux = ConnectionMultiplexer.Connect(opts.ConnectionString);
         _db = _mux.GetDatabase();
-        _logger.LogInformation("Redis app cache connected ({Endpoint}).", opts.ConnectionString);
+        _logger.LogInformation(
+            "Redis app cache connected ({Endpoint}).",
+            RedactConnectionString(opts.ConnectionString));
     }
 
     public async Task<KpiValue?> GetLatestAsync(CanonicalKpiId kpiId, string dimensionKey, CancellationToken cancellationToken)
@@ -261,6 +263,27 @@ public sealed class RedisAppCacheStore : IAppCacheStore, IDisposable
             State = dto.State,
             Explanation = dto.Explanation
         };
+    }
+
+    private static string RedactConnectionString(string connectionString)
+    {
+        // Avoid logging Redis AUTH passwords when present in the connection string.
+        if (string.IsNullOrWhiteSpace(connectionString))
+            return "(empty)";
+
+        var passwordIdx = connectionString.IndexOf("password=", StringComparison.OrdinalIgnoreCase);
+        if (passwordIdx < 0)
+            return connectionString;
+
+        var valueStart = passwordIdx + "password=".Length;
+        var valueEnd = connectionString.IndexOf(',', valueStart);
+        if (valueEnd < 0)
+            valueEnd = connectionString.Length;
+
+        return string.Concat(
+            connectionString.AsSpan(0, valueStart),
+            "***",
+            connectionString.AsSpan(valueEnd));
     }
 
     private sealed class KpiDocument

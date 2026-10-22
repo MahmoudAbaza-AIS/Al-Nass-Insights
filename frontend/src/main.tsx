@@ -2,7 +2,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AppProviders } from "./app/providers/AppProviders";
 import { App } from "./app/App";
-import "./styles/global.css";
+import { AppErrorBoundary } from "@shared/components/ErrorBoundary";
+import "primeicons/primeicons.css";
+import "./app/styles/global.css";
 
 const root = document.getElementById("root");
 if (!root) {
@@ -11,8 +13,10 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <AppProviders>
-      <App />
-    </AppProviders>
+    <AppErrorBoundary>
+      <AppProviders>
+        <App />
+      </AppProviders>
+    </AppErrorBoundary>
   </StrictMode>,
 );

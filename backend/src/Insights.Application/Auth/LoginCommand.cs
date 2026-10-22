@@ -17,6 +17,9 @@ public sealed class LoginCommand(
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             return LoginResult.Failed("Username and password are required.");
 
+        if (username.Length > 128 || password.Length > 256)
+            return LoginResult.Failed("Invalid username or password.");
+
         var user = await users.FindByUsernameAsync(username.Trim(), cancellationToken);
         if (user is null || !user.IsActive)
         {

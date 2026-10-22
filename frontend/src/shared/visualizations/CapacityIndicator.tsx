@@ -45,7 +45,7 @@ export function CapacityIndicator({
 
   return (
     <div className="flex items-center gap-3" aria-label={`Bed capacity: ${summary}`}>
-      <div className="relative h-40 w-7 overflow-hidden rounded-full bg-[var(--dash-chart-track)]">
+      <div className="relative h-28 w-6 overflow-hidden rounded-full bg-[var(--dash-chart-track)] md:h-[clamp(5.5rem,22vh,9rem)] md:w-7">
         <div
           className="absolute inset-x-0 bottom-0 rounded-full bg-gradient-to-t from-[var(--dash-danger)] to-[#ff8a95]"
           style={{ height: `${usedPct}%` }}

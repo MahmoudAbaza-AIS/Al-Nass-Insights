@@ -21,17 +21,23 @@ export function DepartmentNavigation({
       aria-label="Department dashboards"
       className={
         compact
-          ? "flex gap-2 overflow-x-auto px-2 py-2"
-          : "flex w-[var(--dash-nav-width)] flex-col items-center gap-3 py-4"
+          ? "flex gap-2 overflow-x-auto px-3 py-2"
+          : "flex h-full w-[var(--dash-nav-width)] flex-col items-center justify-center gap-[var(--dash-nav-gap)] py-4"
       }
     >
       {items.map((item) => {
         const active = item.id === activeId;
-        const className = `flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition ${
-          active
-            ? "bg-[rgba(61,231,255,0.12)] text-[var(--dash-cyan)] shadow-[0_0_18px_rgba(61,231,255,0.35)] ring-1 ring-[var(--dash-cyan)]"
-            : "text-[var(--dash-text-muted)] ring-1 ring-white/10 hover:text-[var(--dash-text)] hover:ring-white/25"
-        }`;
+        const className = compact
+          ? `flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition ${
+              active
+                ? "bg-[var(--dash-nav-active)] text-[var(--dash-cyan)] shadow-[var(--dash-glow-strong)]"
+                : "bg-[var(--dash-nav-idle)] text-white/70 hover:text-white"
+            }`
+          : `flex size-[var(--dash-nav-btn)] shrink-0 items-center justify-center rounded-[var(--dash-radius-nav)] transition ${
+              active
+                ? "bg-[var(--dash-nav-active)] shadow-[var(--dash-glow-strong)]"
+                : "bg-[var(--dash-nav-idle)] opacity-80 hover:opacity-100"
+            }`;
 
         return (
           <Tooltip.Root key={item.id}>

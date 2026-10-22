@@ -63,24 +63,33 @@ export function formatClock(
   date: Date,
   timeZone: string,
   locale = DEFAULT_LOCALE,
-): { dateLabel: string; timeLabel: string } {
+): { dateLabel: string; timeLabel: string; periodLabel: string } {
+  // Figma: "Tuesday March 17, 2026" (no weekday comma)
   const dateLabel = new Intl.DateTimeFormat(locale, {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
     timeZone,
-  }).format(date);
+  })
+    .format(date)
+    .replace(/^(\w+),/, "$1");
 
-  const timeLabel = new Intl.DateTimeFormat(locale, {
+  const parts = new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     hour12: true,
     timeZone,
-  }).format(date);
+  }).formatToParts(date);
 
-  return { dateLabel, timeLabel };
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+
+  const timeLabel = `${get("hour")}:${get("minute")}:${get("second")}`;
+  const periodLabel = get("dayPeriod");
+
+  return { dateLabel, timeLabel, periodLabel };
 }
 
 export function formatTimestamp(
