@@ -273,7 +273,8 @@ body {
     --dash-fs-clock-time: max(0.875rem, 1.12 * var(--u));
     --dash-fs-counter-label: max(0.875rem, 1.05 * var(--u));
     --dash-fs-digit: max(1.4rem, 2.6 * var(--u));
-    --dash-fs-chart: max(0.625rem, 0.62 * var(--u));
+    /* Axis/legend text: keep ≥11px so short viewports remain readable without global scale. */
+    --dash-fs-chart: max(0.6875rem, 0.68 * var(--u));
 
     --dash-pedestal-w: max(3.25rem, 4.6 * var(--u));
     --dash-kpi-icon: max(1.25rem, 1.9 * var(--u));

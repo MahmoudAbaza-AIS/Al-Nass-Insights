@@ -10,6 +10,7 @@ import {
   DisplayStateContext,
   type DisplayPreferences,
 } from "./displayPreferencesContext";
+import { DEFAULT_TIME_ZONE, resolveTimeZone } from "../utils/format";
 
 const STORAGE_KEY = "alnass.dashboard.displayPrefs";
 
@@ -20,7 +21,7 @@ type Action =
   | { type: "hydrate"; prefs: DisplayPreferences };
 
 const defaults: DisplayPreferences = {
-  timeZone: "Asia/Riyadh",
+  timeZone: DEFAULT_TIME_ZONE,
   presentationMode: false,
   refreshIntervalMs: 60_000,
 };
@@ -31,10 +32,12 @@ function loadPrefs(): DisplayPreferences {
     if (!raw) return defaults;
     const parsed = JSON.parse(raw) as Partial<DisplayPreferences>;
     return {
-      timeZone: typeof parsed.timeZone === "string" ? parsed.timeZone : defaults.timeZone,
+      timeZone: resolveTimeZone(
+        typeof parsed.timeZone === "string" ? parsed.timeZone : defaults.timeZone,
+      ),
       presentationMode: false,
       refreshIntervalMs:
-        typeof parsed.refreshIntervalMs === "number"
+        typeof parsed.refreshIntervalMs === "number" && Number.isFinite(parsed.refreshIntervalMs)
           ? parsed.refreshIntervalMs
           : defaults.refreshIntervalMs,
     };
@@ -76,7 +79,7 @@ export function DisplayPreferencesProvider({ children }: { children: ReactNode }
   const [state, dispatch] = useReducer(reducer, undefined, loadPrefs);
 
   const setTimeZone = useCallback((timeZone: string) => {
-    dispatch({ type: "setTimeZone", timeZone });
+    dispatch({ type: "setTimeZone", timeZone: resolveTimeZone(timeZone) });
   }, []);
   const setPresentationMode = useCallback((value: boolean) => {
     dispatch({ type: "setPresentationMode", value });

@@ -53,7 +53,7 @@ export function OverviewDashboard({ data }: { data: DashboardPayload }) {
             label="Recovery Rate"
             reading={m["clinical.recovery_rate"]}
             unit="%"
-            icon="pi-heart"
+            icon="pi-wave-pulse"
             order="value-first"
             onOpenDetail={() => setDetailId("clinical.recovery_rate")}
           />

@@ -7,7 +7,7 @@ export function HospitalBuildingIllustration({ className }: { className?: string
       label="Central hospital building illustration"
       src={hospitalBuilding}
       width={1980}
-      height={1508}
+      height={972}
       className={className}
     />
   );

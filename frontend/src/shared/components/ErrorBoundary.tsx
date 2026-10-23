@@ -44,16 +44,26 @@ export class AppErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("Application failure", error, info.componentStack);
+    // Keep diagnostics local and non-sensitive (no tokens / response bodies).
+    console.error("Application failure", {
+      name: error.name,
+      message: error.message,
+      componentStack: info.componentStack,
+    });
   }
 
   render() {
     if (this.state.error) {
+      const detail = this.state.error.message?.trim();
       return (
         <div className="dash-app-bg flex min-h-screen items-center justify-center px-4">
           <WidgetErrorState
             title={this.props.title ?? "Something went wrong"}
-            message="The application hit an unexpected error. You can try again or reload the page."
+            message={
+              detail
+                ? `The application hit an unexpected error (${detail}). You can try again or reload the page.`
+                : "The application hit an unexpected error. You can try again or reload the page."
+            }
             onRetry={() => this.setState({ error: null })}
           />
         </div>

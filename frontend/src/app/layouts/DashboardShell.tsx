@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { DashboardHeader } from "@shared/components/DashboardHeader";
 import { DepartmentNavigation } from "@shared/components/DepartmentNavigation";
 import { useFullscreen } from "@shared/hooks/useFullscreen";
@@ -24,17 +24,6 @@ export interface DashboardShellProps {
   children: ReactNode;
 }
 
-/** Removes PrimeUI unlicensed toast (#p-license-host) — closed shadow, so CSS cannot hide it. */
-function useStripPrimeLicenseBanner() {
-  useEffect(() => {
-    const strip = () => document.getElementById("p-license-host")?.remove();
-    strip();
-    const obs = new MutationObserver(strip);
-    obs.observe(document.body, { childList: true });
-    return () => obs.disconnect();
-  }, []);
-}
-
 export function DashboardShell({
   title,
   activeId,
@@ -53,7 +42,6 @@ export function DashboardShell({
   const prefs = useDisplayPreferences();
   const { setPresentationMode } = useDisplayPreferencesActions();
   const { isFullscreen, toggle } = useFullscreen(shellRef);
-  useStripPrimeLicenseBanner();
 
   const presentationMode = prefs.presentationMode || isFullscreen;
 

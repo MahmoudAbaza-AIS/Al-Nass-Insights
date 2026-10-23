@@ -23,7 +23,7 @@ export function InpatientDashboard({ data }: { data: DashboardPayload }) {
           label="Bed Occupancy"
           reading={m["inpatient.bed_occupancy_rate"]}
           unit="%"
-          icon="pi-inbox"
+          icon="pi-warehouse"
           onOpenDetail={() => setDetailId("inpatient.bed_occupancy_rate")}
         />
         <KpiMetric

@@ -99,19 +99,29 @@ export function DashboardHeader({
                 <HeaderAction
                   icon="pi-sign-out"
                   label="Sign out"
-                  tooltip={userDisplayName ? `Sign out (${userDisplayName})` : "Sign out"}
+                  tooltip="Sign out"
                   onClick={onLogout}
                 />
               ) : null}
             </div>
           </div>
-          <DataFreshnessIndicator
-            lastSuccessfulAt={lastSuccessfulAt}
-            isStale={isStale}
-            isRefreshing={isRefreshing}
-            timeZone={timeZone}
-            error={error}
-          />
+          <div className="flex max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-0.5">
+            {userDisplayName ? (
+              <span
+                className="max-w-[12rem] truncate text-[length:var(--dash-fs-xs)] text-[var(--dash-label)] sm:max-w-[16rem]"
+                title={userDisplayName}
+              >
+                {userDisplayName}
+              </span>
+            ) : null}
+            <DataFreshnessIndicator
+              lastSuccessfulAt={lastSuccessfulAt}
+              isStale={isStale}
+              isRefreshing={isRefreshing}
+              timeZone={timeZone}
+              error={error}
+            />
+          </div>
         </div>
       </div>
     </header>

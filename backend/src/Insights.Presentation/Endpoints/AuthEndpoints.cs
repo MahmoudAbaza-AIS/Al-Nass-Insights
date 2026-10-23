@@ -78,7 +78,13 @@ public static class AuthEndpoints
         var username = user.FindFirst("preferred_username")?.Value
             ?? user.Identity.Name
             ?? "unknown";
-        var displayName = user.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? username;
+        // JWT bearer maps NameClaimType to preferred_username, so ClaimTypes.Name may appear
+        // more than once (username + display name). Prefer a Name claim that is not the username.
+        var displayName = user.FindAll(System.Security.Claims.ClaimTypes.Name)
+                .Select(c => c.Value)
+                .FirstOrDefault(v => !string.Equals(v, username, StringComparison.OrdinalIgnoreCase))
+            ?? user.FindFirst("name")?.Value
+            ?? username;
         var org = user.FindFirst(JwtTokenService.OrganizationClaim)?.Value ?? string.Empty;
         var email = user.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email)?.Value;
         // LocalJwt uses ClaimTypes.Role; Keycloak is configured with RoleClaimType = "roles".

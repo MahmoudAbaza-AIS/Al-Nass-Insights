@@ -1,4 +1,16 @@
 const DEFAULT_LOCALE = "en-GB";
+export const DEFAULT_TIME_ZONE = "Asia/Riyadh";
+
+/** Returns a usable IANA zone; invalid values fall back so render never throws. */
+export function resolveTimeZone(timeZone: string | null | undefined): string {
+  const candidate = typeof timeZone === "string" && timeZone.trim() ? timeZone.trim() : DEFAULT_TIME_ZONE;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: candidate }).format(new Date());
+    return candidate;
+  } catch {
+    return DEFAULT_TIME_ZONE;
+  }
+}
 
 export function formatNumber(
   value: number | null | undefined,
@@ -90,13 +102,14 @@ export function formatClock(
   timeZone: string,
   locale = "en-US",
 ): { dateLabel: string; timeLabel: string; periodLabel: string } {
+  const zone = resolveTimeZone(timeZone);
   // Figma: "Tuesday March 17, 2026" (no weekday comma)
   const dateLabel = new Intl.DateTimeFormat(locale, {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
-    timeZone,
+    timeZone: zone,
   })
     .format(date)
     .replace(/^(\w+),/, "$1");
@@ -106,7 +119,7 @@ export function formatClock(
     minute: "2-digit",
     second: "2-digit",
     hour12: true,
-    timeZone,
+    timeZone: zone,
   }).formatToParts(date);
 
   const get = (type: Intl.DateTimeFormatPartTypes) =>
@@ -133,7 +146,7 @@ export function formatTimestamp(
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
-    timeZone,
+    timeZone: resolveTimeZone(timeZone),
   }).format(date);
 }
 

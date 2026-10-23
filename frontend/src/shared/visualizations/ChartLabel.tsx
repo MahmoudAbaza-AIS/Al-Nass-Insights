@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /** Smallest rendered size for any chart text, so scaled-down SVGs never produce unreadable labels. */
-const FLOOR = "0.625rem";
+const FLOOR = "0.6875rem";
 
 export interface ViewBox {
   x?: number;

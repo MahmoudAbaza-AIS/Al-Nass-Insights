@@ -10,6 +10,9 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",
     "test": "vitest run",
+    "test:visual": "node ./scripts/visual/harness.mjs",
+    "test:func": "node ./scripts/visual/func.mjs",
+    "test:refresh-probe": "node ./scripts/visual/refresh-probe.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
