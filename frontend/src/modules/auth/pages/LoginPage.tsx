@@ -35,7 +35,7 @@ export function LoginPage() {
 
         <form
           onSubmit={onSubmit}
-          className="rounded-[var(--dash-radius-lg)] border border-white/10 bg-[rgba(6,36,48,0.72)] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-sm"
+          className="rounded-[var(--dash-radius-lg)] border border-white/10 bg-[rgba(6,36,48,0.72)] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-sm"
           aria-labelledby="login-heading"
         >
           <h1 id="login-heading" className="mb-5 mt-0 text-xl font-semibold tracking-wide">
