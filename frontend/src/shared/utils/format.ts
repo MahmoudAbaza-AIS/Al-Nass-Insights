@@ -1,5 +1,9 @@
 const DEFAULT_LOCALE = "en-GB";
-export const DEFAULT_TIME_ZONE = "Asia/Riyadh";
+/** Docs: one definition of "today" and month boundaries, in Cairo time. */
+export const DEFAULT_TIME_ZONE = "Africa/Cairo";
+
+/** Shown wherever a value has not been published (never an implied zero). */
+export const EMPTY_VALUE = "-";
 
 /** Returns a usable IANA zone; invalid values fall back so render never throws. */
 export function resolveTimeZone(timeZone: string | null | undefined): string {
@@ -18,7 +22,7 @@ export function formatNumber(
   locale = DEFAULT_LOCALE,
 ): string {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE;
   }
   return new Intl.NumberFormat(locale, options).format(value);
 }
@@ -29,7 +33,7 @@ export function formatPercent(
   locale = DEFAULT_LOCALE,
 ): string {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE;
   }
   return `${formatNumber(value, {
     minimumFractionDigits: precision,
@@ -42,7 +46,7 @@ export function formatDurationMinutes(
   precision = 0,
 ): string {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE;
   }
   return `${formatNumber(value, {
     minimumFractionDigits: precision,
@@ -56,7 +60,7 @@ export function formatMetricValue(
   precision: number,
 ): string {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE;
   }
   if (unit === "%") {
     return formatPercent(value, precision);
@@ -78,7 +82,7 @@ export function formatMetricParts(
   precision: number,
 ): { number: string; unit: string } {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return { number: "—", unit: "" };
+    return { number: EMPTY_VALUE, unit: "" };
   }
   return {
     number: formatNumber(value, {

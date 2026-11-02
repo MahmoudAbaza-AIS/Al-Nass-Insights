@@ -8,7 +8,7 @@ import {
 
 describe("resolveTimeZone", () => {
   it("keeps a valid IANA zone", () => {
-    expect(resolveTimeZone("Asia/Riyadh")).toBe("Asia/Riyadh");
+    expect(resolveTimeZone("Africa/Cairo")).toBe("Africa/Cairo");
   });
 
   it("falls back for invalid or empty zones so Intl never throws at render", () => {

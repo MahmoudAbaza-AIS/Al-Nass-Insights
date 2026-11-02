@@ -74,7 +74,7 @@ export function DashboardShell({
         onLogout={onLogout}
       />
       <div className="dash-shell-body relative z-[1] flex min-h-0 flex-1 flex-col md:flex-row">
-        <aside className="hidden shrink-0 self-stretch md:block" aria-label="Primary">
+        <aside className="dash-nav-rail hidden shrink-0 self-stretch md:block" aria-label="Primary">
           <DepartmentNavigation
             items={registry}
             activeId={activeId}

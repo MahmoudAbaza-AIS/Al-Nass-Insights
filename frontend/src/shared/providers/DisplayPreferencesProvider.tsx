@@ -12,7 +12,8 @@ import {
 } from "./displayPreferencesContext";
 import { DEFAULT_TIME_ZONE, resolveTimeZone } from "../utils/format";
 
-const STORAGE_KEY = "alnass.dashboard.displayPrefs";
+// v2: default zone moved to Africa/Cairo; older stored zones are not carried over.
+const STORAGE_KEY = "alnass.dashboard.displayPrefs.v2";
 
 type Action =
   | { type: "setTimeZone"; timeZone: string }

@@ -20,3 +20,6 @@ export type {
 export type { DashboardModule, DashboardNavItem } from "./navigation";
 
 export { getMetricDefinition, METRIC_DEFINITIONS } from "./metricDefinitions";
+
+export { DISTRIBUTION_DEFINITIONS, segmentsOrEmpty } from "./distributionDefinitions";
+export type { DistributionKey } from "./distributionDefinitions";

@@ -7,13 +7,15 @@ const ARC = [
   { lift: 0, scale: 0.8 },
 ];
 
+/** Figma 5-star arc; with no published score all stars stay grey (no implied rating). */
 export function StarRating({ score }: { score: number | null }) {
-  if (score === null) {
-    return <span className="text-[length:var(--dash-fs-label)] text-[var(--dash-label)]">Satisfaction unavailable</span>;
-  }
-  const filled = Math.round(score);
+  const filled = score === null ? 0 : Math.round(score);
   return (
-    <div className="flex items-end gap-[0.35em]" role="img" aria-label={`${score} out of 5 stars`}>
+    <div
+      className="flex items-end gap-[0.35em]"
+      role="img"
+      aria-label={score === null ? "Satisfaction score unavailable" : `${score} out of 5 stars`}
+    >
       {ARC.map((pos, i) => (
         <i
           key={i}

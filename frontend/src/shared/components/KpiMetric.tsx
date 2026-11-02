@@ -1,5 +1,5 @@
 import type { MetricReading, MetricStatusTone } from "@contracts/metrics";
-import { formatMetricParts, formatMetricValue } from "../utils/format";
+import { EMPTY_VALUE, formatMetricParts, formatMetricValue } from "../utils/format";
 import { availabilityLabel, statusToneClass } from "../utils/status";
 
 export interface KpiMetricProps {
@@ -11,12 +11,20 @@ export interface KpiMetricProps {
   supportingText?: string;
   /** PrimeIcons class (e.g. `pi-clock`) shown on the reference's elliptical pedestal. */
   icon?: string;
+  /** Figma tile illustration (image on its own pedestal); takes precedence over `icon`. */
+  art?: { src: string; width: number; height: number };
+  /** CSS width for `art` (default ≈ 5.2u, the Figma tile icon size). */
+  artWidth?: string;
   iconTone?: "cyan" | "danger" | "warning";
   /** `end` mirrors the block (icon right, text right-aligned) as on the Call Center frame. */
   iconPosition?: "start" | "end";
   /** Reference uses label-over-value on KPI rows and value-over-label on hub callouts. */
   order?: "label-first" | "value-first";
   size?: "md" | "lg";
+  /** `label` = Figma descriptive unit (e.g. "per 1,000 patients"): regular weight, label colour, always shown. */
+  unitTone?: "value" | "label";
+  /** Explicit Figma value colour (CSS colour); overrides the tone colour. */
+  valueColor?: string;
   onOpenDetail?: () => void;
   className?: string;
 }
@@ -50,10 +58,14 @@ export function KpiMetric({
   tone,
   supportingText,
   icon,
+  art,
+  artWidth,
   iconTone = "cyan",
   iconPosition = "start",
   order = "label-first",
   size = "md",
+  unitTone = "value",
+  valueColor,
   onOpenDetail,
   className = "",
 }: KpiMetricProps) {
@@ -62,36 +74,50 @@ export function KpiMetric({
   const display = formatMetricValue(reading?.value ?? null, unit, precision);
   const availability = reading?.availability;
   const showUnavailable = !reading || reading.value === null || availability === "unavailable";
-  const support = supportingText ?? reading?.supportingText;
+  // Only caller-supplied copy is shown on the tile; cache explanations stay in the detail dialog.
+  const support = supportingText;
   const end = iconPosition === "end";
 
+  // Figma: KPI label Poppins Regular 36 `Title-kpi`, value Poppins Bold 72 `Kpi`, unit Medium 40.
   const labelEl = (
-    <div className="text-[length:var(--dash-fs-label)] font-medium leading-tight text-[var(--dash-label)]">
+    <div className="text-[length:var(--dash-fs-label)] font-normal leading-tight text-[var(--dash-label)]">
       {label}
     </div>
   );
   const valueEl = (
     <div
-      className={`whitespace-nowrap font-semibold leading-[1.15] ${
+      className={`whitespace-nowrap font-bold leading-[1.15] ${
         size === "lg" ? "text-[length:var(--dash-fs-value-lg)]" : "text-[length:var(--dash-fs-value)]"
-      } ${showUnavailable ? "text-[var(--dash-warning)]" : `${statusToneClass(resolvedTone)} dash-glow-text`}`}
+      } ${showUnavailable ? "text-[var(--dash-cyan)]" : `${statusToneClass(resolvedTone)} dash-glow-text`}`}
+      style={valueColor && !showUnavailable ? { color: valueColor } : undefined}
     >
-      {showUnavailable ? (
-        "—"
-      ) : (
-        <>
-          {parts.number}
-          {parts.unit ? (
-            <span className="ms-[0.3em] text-[length:var(--dash-fs-unit)] font-medium">{parts.unit}</span>
-          ) : null}
-        </>
-      )}
+      <span className={showUnavailable ? "opacity-60" : undefined}>{showUnavailable ? EMPTY_VALUE : parts.number}</span>
+      {unitTone === "label" && unit ? (
+        <span className="ms-[1em] text-[length:var(--dash-fs-label)] font-normal text-[var(--dash-label)] [text-shadow:none]">
+          {unit}
+        </span>
+      ) : !showUnavailable && parts.unit ? (
+        <span className="ms-[0.3em] text-[length:var(--dash-fs-unit)] font-medium">{parts.unit}</span>
+      ) : null}
     </div>
   );
 
   const content = (
     <>
-      {icon ? <KpiPedestal icon={icon} tone={iconTone} /> : null}
+      {art ? (
+        <img
+          src={art.src}
+          alt=""
+          aria-hidden
+          width={art.width}
+          height={art.height}
+          decoding="async"
+          className="dash-kpi-art w-[max(3.5rem,calc(var(--u,1vw)*5.2))] shrink-0"
+          style={artWidth ? { width: artWidth } : undefined}
+        />
+      ) : icon ? (
+        <KpiPedestal icon={icon} tone={iconTone} />
+      ) : null}
       <div className={`flex min-w-0 flex-col gap-[0.2em] ${end ? "items-end text-right" : "text-left"}`}>
         {order === "label-first" ? (
           <>
@@ -105,12 +131,12 @@ export function KpiMetric({
           </>
         )}
         {support ? (
-          <div className="text-[length:var(--dash-fs-xs)] leading-tight text-[var(--dash-text-muted)]">
+          <div className="text-[length:var(--dash-fs-label)] leading-tight text-[var(--dash-label)]">
             {support}
           </div>
         ) : null}
         {availability && availability !== "available" ? (
-          <div className="text-[length:var(--dash-fs-xs)] leading-tight text-[var(--dash-warning)]">
+          <div className="!whitespace-normal text-[length:var(--dash-fs-xs)] leading-tight text-[var(--dash-text-subtle)]">
             {availabilityLabel(availability)}
           </div>
         ) : null}

@@ -1,15 +1,18 @@
+import type { CSSProperties } from "react";
 import { IllustrationPanel } from "@shared/components/IllustrationPanel";
-import globe from "../../../assets/illustrations/call-center-globe.png";
+import globe from "../../../assets/figma/call-center-globe.png";
 
-export function CallCenterIllustration({ className }: { className?: string }) {
+/** Figma globe + headset with its light beam and orbit rings (cropped from the 4K export at 1560,640). */
+export function CallCenterIllustration({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
     <IllustrationPanel
       label="Call center illustration"
       src={globe}
-      width={900}
-      height={950}
-      mask="feather"
+      width={840}
+      height={1060}
+      mask="edges"
       className={className}
+      style={style}
     />
   );
 }

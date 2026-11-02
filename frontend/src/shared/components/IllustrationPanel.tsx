@@ -9,13 +9,16 @@ export interface IllustrationPanelProps {
    * `feather` fades hard crop edges of assets exported with an opaque backdrop;
    * `fade-corner` hides a neighbouring-layer fragment caught in the bottom-end corner.
    */
-  mask?: "feather" | "fade-corner";
+  mask?: "feather" | "fade-corner" | "edges";
   className?: string;
+  /** Extra inline style (e.g. stage `place()` coordinates). */
+  style?: CSSProperties;
 }
 
 const MASK_CLASS: Record<NonNullable<IllustrationPanelProps["mask"]>, string> = {
   feather: "dash-illus__img--feather",
   "fade-corner": "dash-illus__img--fade-corner",
+  edges: "dash-illus__img--edges",
 };
 
 /**
@@ -23,8 +26,8 @@ const MASK_CLASS: Record<NonNullable<IllustrationPanelProps["mask"]>, string> = 
  * area it is placed in (contained at its own aspect ratio, never cropped); on mobile it
  * flows at its natural aspect ratio.
  */
-export function IllustrationPanel({ label, src, width, height, mask, className = "" }: IllustrationPanelProps) {
-  const style = { "--dash-illus-ratio": width / height } as CSSProperties;
+export function IllustrationPanel({ label, src, width, height, mask, className = "", style: extraStyle }: IllustrationPanelProps) {
+  const style = { ...extraStyle, "--dash-illus-ratio": width / height } as CSSProperties;
   return (
     <div className={`dash-illus ${className}`} role="img" aria-label={label} style={style}>
       <div className="dash-illus__glow" aria-hidden />

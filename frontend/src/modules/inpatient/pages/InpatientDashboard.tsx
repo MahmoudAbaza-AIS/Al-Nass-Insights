@@ -1,96 +1,128 @@
 import { useState } from "react";
 import type { DashboardPayload } from "@contracts/metrics";
 import { KpiMetric } from "@shared/components/KpiMetric";
-import { DashboardSection } from "@shared/components/DashboardSection";
 import { CapacityIndicator } from "@shared/visualizations/CapacityIndicator";
 import { RadialGauge } from "@shared/visualizations/RadialGauge";
 import { KpiDetailDialog } from "@shared/components/KpiDetailDialog";
 import { WidgetErrorBoundary } from "@shared/components/ErrorBoundary";
 import { getMetricDefinition } from "@contracts/metricDefinitions";
 import { useDisplayPreferences } from "@shared/providers/useDisplayPreferences";
+import { place } from "@shared/utils/stage";
 import { InpatientIllustration } from "../components/InpatientIllustration";
 import { PatientExperiencePanel } from "../components/PatientExperiencePanel";
+import bedOccupancyArt from "../../../assets/figma/kpi-ip-bed-occupancy.png";
+import alosArt from "../../../assets/figma/kpi-ip-alos.png";
+import bedTurnoverArt from "../../../assets/figma/kpi-ip-bed-turnover.png";
+import cancellationArt from "../../../assets/figma/kpi-ip-cancellation.png";
+import readmissionArt from "../../../assets/figma/kpi-readmission.png";
 
+/** Top-row tiles: Figma text block starts ~1.8u below the icon top. */
+const TOP_TILE = "gap-[calc(var(--dash-gap)*2.2)] !items-start [&>div]:mt-[calc(1.8*var(--dash-stage-u,0px))]";
+const GAUGE_SIZE = "max(var(--dash-gauge-md), calc(8.3 * var(--dash-stage-u, 0px)))";
+
+/**
+ * DASH-07 Inpatient Services Performance — Figma frame `827:11123`.
+ * Landscape tablet/desktop: blocks at Figma coordinates; portrait/mobile: flow grid.
+ */
 export function InpatientDashboard({ data }: { data: DashboardPayload }) {
   const prefs = useDisplayPreferences();
   const [detailId, setDetailId] = useState<string | null>(null);
   const m = data.metrics;
 
   return (
-    <div className="dash-hub md:landscape:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)] md:landscape:grid-rows-[auto_minmax(0,1fr)_auto] md:portrait:grid-cols-2 md:portrait:grid-rows-[auto_minmax(0,1fr)_auto_auto]">
-      <div className="grid grid-cols-1 gap-[var(--dash-gap)] sm:grid-cols-2 md:landscape:col-span-3 md:landscape:grid-cols-4 md:portrait:col-span-2">
+    <div className="dash-hub dash-stage md:portrait:grid-cols-2 md:portrait:grid-rows-[auto_minmax(0,1fr)_auto_auto]">
+      <div className="grid grid-cols-1 gap-[var(--dash-gap)] sm:grid-cols-2 md:portrait:col-span-2">
+        <div className="dash-place" style={place(370, 360, 800)}>
+          <KpiMetric
+            label="Bed Occupancy"
+            reading={m["inpatient.bed_occupancy_rate"]}
+            unit="%"
+            art={{ src: bedOccupancyArt, width: 200, height: 210 }}
+            className={TOP_TILE}
+            onOpenDetail={() => setDetailId("inpatient.bed_occupancy_rate")}
+          />
+        </div>
+        <div className="dash-place" style={place(1210, 360, 860)}>
+          <KpiMetric
+            label="Average Length of Stay"
+            reading={m["inpatient.alos_days"]}
+            unit="days"
+            precision={1}
+            art={{ src: alosArt, width: 200, height: 210 }}
+            className={TOP_TILE}
+            onOpenDetail={() => setDetailId("inpatient.alos_days")}
+          />
+        </div>
+        <div className="dash-place" style={place(2130, 360, 900)}>
+          <KpiMetric
+            label="Bed Turnover"
+            reading={m["inpatient.bed_turnover"]}
+            unit="patients/bed"
+            art={{ src: bedTurnoverArt, width: 200, height: 210 }}
+            className={TOP_TILE}
+            onOpenDetail={() => setDetailId("inpatient.bed_turnover")}
+          />
+        </div>
+        <div className="dash-place" style={place(3040, 360, 780)}>
+          {/* KPI review: relabel "Admission Cancellation Rate" so it is not confused with the OR KPI. */}
+          <KpiMetric
+            label="Admission Cancellation Rate"
+            className={`${TOP_TILE} xl:[&_*]:whitespace-nowrap`}
+            reading={m["inpatient.cancellation_rate"]}
+            unit="%"
+            tone="critical"
+            art={{ src: cancellationArt, width: 200, height: 210 }}
+            onOpenDetail={() => setDetailId("inpatient.cancellation_rate")}
+          />
+        </div>
+      </div>
+
+      <InpatientIllustration className="dash-place md:portrait:col-span-2" style={place(1440, 740, 920, 960)} />
+
+      <div className="dash-place justify-self-center" style={place(1090, 810, 700)}>
+        <WidgetErrorBoundary title="Bed capacity">
+          <CapacityIndicator capacity={data.capacity} title="Bed Capacity" />
+        </WidgetErrorBoundary>
+      </div>
+
+      <div className="dash-place justify-self-center" style={place(2760, 900, 900)}>
         <KpiMetric
-          label="Bed Occupancy"
-          reading={m["inpatient.bed_occupancy_rate"]}
+          label="Readmission Rate"
+          reading={m["inpatient.readmission_rate"]}
           unit="%"
-          icon="pi-warehouse"
-          onOpenDetail={() => setDetailId("inpatient.bed_occupancy_rate")}
-        />
-        <KpiMetric
-          label="Average Length of Stay"
-          reading={m["inpatient.alos_days"]}
-          unit="days"
-          precision={1}
-          icon="pi-clock"
-          onOpenDetail={() => setDetailId("inpatient.alos_days")}
-        />
-        <KpiMetric
-          label="Bed Turnover"
-          reading={m["inpatient.bed_turnover"]}
-          unit="patients/bed"
-          icon="pi-sync"
-          onOpenDetail={() => setDetailId("inpatient.bed_turnover")}
-        />
-        <KpiMetric
-          label="Cancellation Rate"
-          reading={m["inpatient.cancellation_rate"]}
-          unit="%"
-          tone="critical"
-          icon="pi-times-circle"
-          iconTone="danger"
-          onOpenDetail={() => setDetailId("inpatient.cancellation_rate")}
+          art={{ src: readmissionArt, width: 290, height: 350 }}
+          artWidth="max(4rem, calc(7.55 * var(--u, 0.6vw)))"
+          order="value-first"
+          className="gap-[calc(0.9*var(--u,0.6vw))] !items-end [&>div]:mb-[calc(0.3*var(--dash-stage-u,0px))]"
+          onOpenDetail={() => setDetailId("inpatient.readmission_rate")}
         />
       </div>
 
-      <InpatientIllustration className="md:landscape:col-start-2 md:landscape:row-span-2 md:landscape:row-start-2 md:portrait:col-span-2" />
-
-      <DashboardSection
-        title="Bed Capacity"
-        className="justify-self-center md:landscape:col-start-1 md:landscape:row-start-2 md:landscape:self-start md:landscape:justify-self-end"
-      >
-        <WidgetErrorBoundary title="Bed capacity">
-          <CapacityIndicator capacity={data.capacity} />
-        </WidgetErrorBoundary>
-      </DashboardSection>
-
-      <KpiMetric
-        label="Readmission Rate"
-        reading={m["inpatient.readmission_rate"]}
-        unit="%"
-        icon="pi-replay"
-        order="value-first"
-        size="lg"
-        className="justify-self-center md:landscape:col-start-3 md:landscape:row-start-2 md:landscape:justify-self-start"
-        onOpenDetail={() => setDetailId("inpatient.readmission_rate")}
+      <PatientExperiencePanel
+        reading={m["inpatient.satisfaction_score"]}
+        className="dash-place justify-self-center"
+        style={place(512, 1366, 560)}
       />
 
-      <div className="justify-self-center md:landscape:col-start-1 md:landscape:row-start-3 md:landscape:justify-self-start">
-        <PatientExperiencePanel reading={m["inpatient.satisfaction_score"]} />
-      </div>
-
-      <div className="flex flex-wrap justify-center gap-[var(--dash-gap-lg)] md:landscape:col-start-3 md:landscape:row-start-3 md:landscape:justify-around">
-        <RadialGauge
-          label="Complaint Rate"
-          value={m["inpatient.complaint_rate"]?.value ?? null}
-          tone="warning"
-          displaySize="var(--dash-gauge-md)"
-        />
-        <RadialGauge
-          label="Patient Violation Rate"
-          value={m["inpatient.violation_rate"]?.value ?? null}
-          tone="danger"
-          displaySize="var(--dash-gauge-md)"
-        />
+      <div className="flex flex-wrap justify-center gap-[var(--dash-gap-lg)]">
+        <div className="dash-place flex justify-center" style={place(2282, 1500, 600)}>
+          <RadialGauge
+            label="Complaint Rate"
+            value={m["inpatient.complaint_rate"]?.value ?? null}
+            tone="warning"
+            variant="arc"
+            displaySize={GAUGE_SIZE}
+          />
+        </div>
+        <div className="dash-place flex justify-center" style={place(3038, 1500, 600)}>
+          <RadialGauge
+            label="Patient Violation Rate"
+            value={m["inpatient.violation_rate"]?.value ?? null}
+            tone="danger"
+            variant="arc"
+            displaySize={GAUGE_SIZE}
+          />
+        </div>
       </div>
 
       <KpiDetailDialog

@@ -23,6 +23,8 @@ export interface ChartLabelProps {
   baseline?: "central" | "bottom";
   color?: string;
   weight?: number;
+  /** Degrees, e.g. -30 to follow an isometric axis. */
+  rotate?: number;
   children: ReactNode;
 }
 
@@ -44,6 +46,7 @@ export function ChartLabel({
   baseline = "central",
   color = "var(--dash-label)",
   weight,
+  rotate,
   children,
 }: ChartLabelProps) {
   const bx = viewBox.x ?? 0;
@@ -55,7 +58,8 @@ export function ChartLabel({
       style={{
         left: `${((x - bx) / viewBox.w) * 100}%`,
         top: `${((y - by) / viewBox.h) * 100}%`,
-        transform: `translate(${TRANSLATE_X[anchor]}, ${TRANSLATE_Y[baseline]})`,
+        transform: `translate(${TRANSLATE_X[anchor]}, ${TRANSLATE_Y[baseline]})${rotate ? ` rotate(${rotate}deg)` : ""}`,
+        transformOrigin: rotate ? `${anchor === "end" ? "100%" : anchor === "start" ? "0" : "50%"} 50%` : undefined,
         fontSize: `max(${FLOOR}, calc(${renderedWidth} * ${size / viewBox.w}))`,
         color,
         fontWeight: weight,

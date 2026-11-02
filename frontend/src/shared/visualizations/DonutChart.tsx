@@ -1,6 +1,6 @@
 import type { DistributionSegment } from "@contracts/metrics";
 import { StatusLegend } from "../components/StatusLegend";
-import { formatNumber, formatPercent, shareToPercent } from "../utils/format";
+import { EMPTY_VALUE, formatNumber, formatPercent, shareToPercent } from "../utils/format";
 import { ChartLabel, ChartUnit } from "./ChartLabel";
 
 const DEFAULT_COLORS = [
@@ -16,7 +16,12 @@ export interface DonutChartProps {
   /** CSS length for the ring diameter. */
   displaySize?: string;
   colors?: string[];
-  legend?: "right" | "none";
+  /** `corner` = Figma call-center legend tucked under the right-hand label. */
+  legend?: "right" | "corner" | "side" | "none";
+  /** Where the first segment starts, degrees clockwise from 6 o'clock (Figma call-center split: -45). */
+  startAngle?: number;
+  /** Ring thickness in viewBox units (Figma call-center ring ≈ 9). */
+  thickness?: number;
 }
 
 const C = 80;
@@ -32,16 +37,22 @@ export function DonutChart({
   displaySize = "var(--dash-gauge-lg)",
   colors = DEFAULT_COLORS,
   legend = "right",
+  startAngle = 0,
+  thickness = STROKE,
 }: DonutChartProps) {
   const circumference = 2 * Math.PI * R;
   const renderedWidth = `calc(${displaySize} * 1.425)`;
+  const hasData = segments.some((s) => s.share !== null);
+  const startRad = (startAngle * Math.PI) / 180;
   let cursor = 0;
 
   const arcs = segments.map((seg, index) => {
     const pct = shareToPercent(seg.share) ?? 0;
+    // Unpublished splits keep their label slots (even spacing) so the "-" sits where the value will.
+    const slot = hasData ? pct : 100 / Math.max(1, segments.length);
     const start = cursor;
-    cursor += pct;
-    const mid = ((start + pct / 2) / 100) * Math.PI * 2 + Math.PI / 2;
+    cursor += slot;
+    const mid = ((start + slot / 2) / 100) * Math.PI * 2 + Math.PI / 2 + startRad;
     return {
       ...seg,
       pct,
@@ -51,8 +62,6 @@ export function DonutChart({
       ly: C + Math.sin(mid) * LABEL_R,
     };
   });
-
-  const hasData = arcs.some((a) => a.share !== null);
   const summary = hasData
     ? segments.map((s) => `${s.label} ${formatPercent(shareToPercent(s.share))}`).join(", ")
     : "unavailable";
@@ -66,7 +75,7 @@ export function DonutChart({
           role="img"
           aria-label={`${label}. ${summary}`}
         >
-          <circle cx={C} cy={C} r={R} fill="none" stroke="var(--dash-chart-track)" strokeWidth={STROKE} />
+          <circle cx={C} cy={C} r={R} fill="none" stroke="var(--dash-chart-track)" strokeWidth={thickness} />
           {arcs.map((arc) =>
             arc.pct > 0 ? (
               <circle
@@ -76,35 +85,47 @@ export function DonutChart({
                 r={R}
                 fill="none"
                 stroke={arc.color}
-                strokeWidth={STROKE}
+                strokeWidth={thickness}
                 strokeDasharray={`${(arc.pct / 100) * circumference} ${circumference}`}
                 strokeDashoffset={-(arc.start / 100) * circumference}
-                transform={`rotate(90 ${C} ${C})`}
+                transform={`rotate(${90 + startAngle} ${C} ${C})`}
               />
             ) : null,
           )}
         </svg>
-        {hasData
-          ? arcs.map((arc) => (
-              <ChartLabel
-                key={`l-${arc.id}`}
-                x={arc.lx}
-                y={arc.ly}
-                viewBox={VIEW}
-                renderedWidth={renderedWidth}
-                size={17}
-                color={arc.color}
-                weight={600}
-              >
+        {arcs.map((arc) => (
+          <ChartLabel
+            key={`l-${arc.id}`}
+            x={arc.lx}
+            y={arc.ly}
+            viewBox={VIEW}
+            renderedWidth={renderedWidth}
+            size={20}
+            color={arc.color}
+            weight={700}
+          >
+            {arc.share === null ? (
+              EMPTY_VALUE
+            ) : (
+              <>
                 {formatNumber(arc.pct, { maximumFractionDigits: 0 })}
                 <ChartUnit>%</ChartUnit>
-              </ChartLabel>
-            ))
-          : null}
-        {!hasData ? (
-          <ChartLabel x={C} y={C} viewBox={VIEW} renderedWidth={renderedWidth} size={11} color="var(--dash-text-muted)">
-            Unavailable
+              </>
+            )}
           </ChartLabel>
+        ))}
+        {legend === "corner" || legend === "side" ? (
+          <div
+            className={
+              legend === "corner" ? "absolute bottom-[14%] left-[86%]" : "absolute left-[88%] top-[58%] -translate-y-1/2"
+            }
+          >
+            <StatusLegend
+              variant="square"
+              direction="column"
+              items={arcs.map((arc) => ({ color: arc.color, label: arc.label }))}
+            />
+          </div>
         ) : null}
       </div>
       {legend === "right" ? (

@@ -1,5 +1,5 @@
-import { formatNumber } from "../utils/format";
-import { ChartLabel, ChartUnit } from "./ChartLabel";
+import { EMPTY_VALUE, formatNumber } from "../utils/format";
+import { ChartLabel } from "./ChartLabel";
 
 export interface SemiGaugeProps {
   value: number | null;
@@ -31,7 +31,7 @@ export function SemiGauge({ value, max, label, unit = "min" }: SemiGaugeProps) {
   const angle = START + SWEEP * ((safe ?? 0) / max);
   const needle = polar(angle, R - 22);
   const ticks = Array.from({ length: 7 }, (_, i) => (max / 6) * i);
-  const display = value === null ? "—" : formatNumber(value, { maximumFractionDigits: 1 });
+  const display = value === null ? EMPTY_VALUE : formatNumber(value, { maximumFractionDigits: 1 });
 
   return (
     <figure className="m-0 flex flex-col items-center gap-[0.3em]">
@@ -80,21 +80,13 @@ export function SemiGauge({ value, max, label, unit = "min" }: SemiGaugeProps) {
             </ChartLabel>
           );
         })}
-        <ChartLabel
-          x={CX}
-          y={CY + 30}
-          viewBox={VIEW}
-          renderedWidth={WIDTH}
-          size={20}
-          baseline="bottom"
-          color={value === null ? "var(--dash-text-muted)" : "var(--dash-cyan)"}
-          weight={600}
-        >
-          {display}
-          {value !== null ? <ChartUnit>{unit}</ChartUnit> : null}
-        </ChartLabel>
       </div>
-      <figcaption className="text-[length:var(--dash-fs-section)] text-[var(--dash-text)]">{label}</figcaption>
+      {/* Figma: value under the dial (Poppins Bold 72 / unit Medium 40), then the caption. */}
+      <div className="whitespace-nowrap text-[length:var(--dash-fs-value)] font-bold leading-none text-[var(--dash-cyan)]">
+        <span className={value === null ? "opacity-60" : "dash-glow-text"}>{display}</span>
+        {value !== null ? <span className="ms-[0.3em] text-[length:var(--dash-fs-unit)] font-medium">{unit}</span> : null}
+      </div>
+      <figcaption className="mt-[0.6em] text-[length:var(--dash-fs-section)] text-[var(--dash-label)]">{label}</figcaption>
     </figure>
   );
 }

@@ -132,7 +132,12 @@ export function App() {
         <WidgetErrorState title="No dashboard data" message="The service returned an empty payload." />
       ) : null}
 
-      {hasAccess && data ? <DashboardBody dashboardId={route.dashboardId} data={data} /> : null}
+      {hasAccess && data ? (
+        // Keyed by dashboard so each page change replays the Figma dissolve (300 ms ease-out).
+        <div key={route.dashboardId} className="dash-page-enter flex min-h-0 flex-1 flex-col">
+          <DashboardBody dashboardId={route.dashboardId} data={data} />
+        </div>
+      ) : null}
     </DashboardShell>
   );
 }

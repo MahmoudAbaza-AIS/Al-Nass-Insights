@@ -1,6 +1,6 @@
 import type { DistributionSegment } from "@contracts/metrics";
 import { StatusLegend } from "../components/StatusLegend";
-import { formatNumber, formatPercent, shareToPercent } from "../utils/format";
+import { EMPTY_VALUE, formatNumber, formatPercent, shareToPercent } from "../utils/format";
 import { ChartLabel, ChartUnit } from "./ChartLabel";
 
 export const DISTRIBUTION_COLORS = [
@@ -56,6 +56,9 @@ export function CylinderBars({ segments, label, colors = DISTRIBUTION_COLORS }: 
                     <rect x={x + 4} y={top} width={5} height={h} fill="rgba(255,255,255,0.25)" />
                     <ellipse cx={cx} cy={top} rx={BAR_W / 2} ry={RY} fill={color} />
                     <ellipse cx={cx} cy={top} rx={BAR_W / 2 - 3} ry={RY - 2.5} fill="rgba(255,255,255,0.35)" />
+                    {/* Figma pin: white dot on the cap with a hairline up to the value label. */}
+                    <line x1={cx} y1={top} x2={cx} y2={top - RY - 3} stroke="rgba(255,255,255,0.8)" strokeWidth={0.6} />
+                    <ellipse cx={cx} cy={top} rx={2.2} ry={1.4} fill="#fff" />
                   </>
                 ) : null}
               </g>
@@ -64,8 +67,7 @@ export function CylinderBars({ segments, label, colors = DISTRIBUTION_COLORS }: 
         </svg>
         {segments.map((seg, i) => {
           const pct = pcts[i];
-          if (pct === null) return null;
-          const top = BASE_Y - Math.max(6, (pct / max) * MAX_H);
+          const top = pct === null ? BASE_Y - RY : BASE_Y - Math.max(6, (pct / max) * MAX_H);
           return (
             <ChartLabel
               key={seg.id}
@@ -73,21 +75,22 @@ export function CylinderBars({ segments, label, colors = DISTRIBUTION_COLORS }: 
               y={top - RY - 3}
               viewBox={view}
               renderedWidth={renderedWidth}
-              size={13}
+              size={16}
               baseline="bottom"
               color={colors[i % colors.length]}
-              weight={600}
+              weight={700}
             >
-              {formatNumber(pct, { maximumFractionDigits: 0 })}
-              <ChartUnit>%</ChartUnit>
+              {pct === null ? (
+                EMPTY_VALUE
+              ) : (
+                <>
+                  {formatNumber(pct, { maximumFractionDigits: 0 })}
+                  <ChartUnit>%</ChartUnit>
+                </>
+              )}
             </ChartLabel>
           );
         })}
-        {!hasData ? (
-          <ChartLabel x={width / 2} y={70} viewBox={view} renderedWidth={renderedWidth} size={11} color="var(--dash-text-muted)">
-            Unavailable
-          </ChartLabel>
-        ) : null}
       </div>
       <div className="pb-[0.4em]">
         <StatusLegend

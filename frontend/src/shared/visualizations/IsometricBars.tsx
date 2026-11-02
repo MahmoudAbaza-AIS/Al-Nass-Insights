@@ -1,6 +1,6 @@
 import type { DistributionSegment } from "@contracts/metrics";
 import { StatusLegend } from "../components/StatusLegend";
-import { formatNumber, formatPercent, shareToPercent } from "../utils/format";
+import { EMPTY_VALUE, formatNumber, formatPercent, shareToPercent } from "../utils/format";
 import { ChartLabel, ChartUnit } from "./ChartLabel";
 import { DISTRIBUTION_COLORS } from "./CylinderBars";
 
@@ -8,6 +8,8 @@ export interface IsometricBarsProps {
   segments: DistributionSegment[];
   label: string;
   colors?: readonly string[];
+  /** CSS length for the chart height (defaults to the shared chart token). */
+  height?: string;
 }
 
 /* Isometric axes: "length" runs up-right, rows step down-right. */
@@ -18,7 +20,6 @@ const DEPTH = 13;
 const THICK = 14;
 const ROW_STEP = 17;
 const VIEW = { w: 170, h: 130 };
-const WIDTH = `calc(var(--dash-chart-h) * ${VIEW.w / VIEW.h})`;
 
 const rowX = (i: number) => 40 + i * ROW_STEP * 0.6;
 const rowY = (i: number) => 70 + i * ROW_STEP;
@@ -36,7 +37,13 @@ function box(x: number, y: number, len: number) {
 }
 
 /** Outpatient clinics (Overview): glass tracks with filled share, percentages at the leading edge. */
-export function IsometricBars({ segments, label, colors = DISTRIBUTION_COLORS }: IsometricBarsProps) {
+export function IsometricBars({
+  segments,
+  label,
+  colors = DISTRIBUTION_COLORS,
+  height = "var(--dash-chart-h)",
+}: IsometricBarsProps) {
+  const WIDTH = `calc(${height} * ${VIEW.w / VIEW.h})`;
   const pcts = segments.map((s) => shareToPercent(s.share));
   const hasData = pcts.some((p) => p !== null);
   const summary = hasData
@@ -45,7 +52,7 @@ export function IsometricBars({ segments, label, colors = DISTRIBUTION_COLORS }:
 
   return (
     <div className="flex flex-col items-center gap-[var(--dash-gap)]">
-      <div className="relative shrink-0" style={{ height: "var(--dash-chart-h)", width: WIDTH }}>
+      <div className="relative shrink-0" style={{ height, width: WIDTH }}>
         <svg viewBox={`0 0 ${VIEW.w} ${VIEW.h}`} className="block size-full" role="img" aria-label={`${label}. ${summary}`}>
           {segments.map((seg, i) => {
             const pct = pcts[i];
@@ -57,8 +64,9 @@ export function IsometricBars({ segments, label, colors = DISTRIBUTION_COLORS }:
             const fill = box(x, y, fillLen);
             return (
               <g key={seg.id}>
-                <polygon points={track.top} fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.45)" strokeWidth={0.6} />
-                <polygon points={track.front} fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.45)" strokeWidth={0.6} />
+                <polygon points={track.top} fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.5)" strokeWidth={0.5} />
+                <polygon points={track.front} fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.5)" strokeWidth={0.5} />
+                <polygon points={box(x, y, TRACK).side} fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth={0.5} />
                 {pct !== null ? (
                   <>
                     <polygon points={fill.front} fill={color} opacity={0.75} />
@@ -72,29 +80,30 @@ export function IsometricBars({ segments, label, colors = DISTRIBUTION_COLORS }:
         </svg>
         {segments.map((seg, i) => {
           const pct = pcts[i];
-          if (pct === null) return null;
           return (
             <ChartLabel
               key={seg.id}
-              x={rowX(i) - 4}
-              y={rowY(i) + THICK / 2 + 2}
+              x={rowX(i) - 3}
+              y={rowY(i) + THICK + 3}
               viewBox={VIEW}
               renderedWidth={WIDTH}
-              size={12}
+              size={13}
               anchor="end"
               color={colors[i % colors.length]}
-              weight={600}
+              weight={700}
+              rotate={-30}
             >
-              {formatNumber(pct, { maximumFractionDigits: 0 })}
-              <ChartUnit>%</ChartUnit>
+              {pct === null ? (
+                EMPTY_VALUE
+              ) : (
+                <>
+                  {formatNumber(pct, { maximumFractionDigits: 0 })}
+                  <ChartUnit>%</ChartUnit>
+                </>
+              )}
             </ChartLabel>
           );
         })}
-        {!hasData ? (
-          <ChartLabel x={85} y={60} viewBox={VIEW} renderedWidth={WIDTH} size={11} color="var(--dash-text-muted)">
-            Unavailable
-          </ChartLabel>
-        ) : null}
       </div>
       <StatusLegend
         variant="square"

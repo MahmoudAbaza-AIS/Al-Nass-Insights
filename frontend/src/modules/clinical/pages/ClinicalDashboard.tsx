@@ -6,29 +6,26 @@ import { OutcomesSection } from "../components/OutcomesSection";
 import { MedicationSection } from "../components/MedicationSection";
 import { InfectionsSection } from "../components/InfectionsSection";
 
+/**
+ * DASH-02 Clinical Performance — Figma frame `827:5269`.
+ * Landscape tablet/desktop: sections sit at their Figma coordinates (`place` inside each section).
+ * Portrait/mobile: the flow grid below.
+ */
 export function ClinicalDashboard({ data }: { data: DashboardPayload }) {
   const m = data.metrics;
 
   return (
-    <div className="dash-hub md:landscape:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)_minmax(0,1fr)] md:landscape:grid-rows-[auto_minmax(0,1fr)_auto] md:portrait:grid-cols-2 md:portrait:grid-rows-[auto_minmax(0,1fr)_auto_auto]">
-      <div className="md:landscape:col-span-3 md:portrait:col-span-2">
+    <div className="dash-hub dash-stage md:portrait:grid-cols-2 md:portrait:grid-rows-[auto_minmax(0,1fr)_auto_auto]">
+      <div className="md:portrait:col-span-2">
         <SafetyHeadline metrics={m} />
       </div>
 
-      <AnatomyIllustration className="md:landscape:col-start-2 md:landscape:row-span-2 md:landscape:row-start-2 md:portrait:col-span-2" />
+      <AnatomyIllustration className="md:portrait:col-span-2" />
 
-      <div className="md:landscape:col-start-1 md:landscape:row-start-2 md:landscape:self-center">
-        <VentilationSection metrics={m} />
-      </div>
-      <div className="md:landscape:col-start-3 md:landscape:row-start-2 md:landscape:self-center">
-        <OutcomesSection metrics={m} />
-      </div>
-      <div className="md:landscape:col-start-1 md:landscape:row-start-3">
-        <MedicationSection metrics={m} />
-      </div>
-      <div className="md:landscape:col-start-3 md:landscape:row-start-3">
-        <InfectionsSection metrics={m} />
-      </div>
+      <VentilationSection metrics={m} />
+      <OutcomesSection metrics={m} />
+      <MedicationSection metrics={m} />
+      <InfectionsSection metrics={m} />
     </div>
   );
 }

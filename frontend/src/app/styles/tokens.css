@@ -25,28 +25,35 @@
   --dash-cyan-border: rgba(0, 229, 255, 0.15);
   --dash-teal: #2ee6c5;
 
-  /* Text */
+  /* Text — Figma variables `Title-kpi` #8FBAC8 (KPI labels) and white @80 (section titles) */
   --dash-text: #ffffff;
   --dash-text-muted: rgba(255, 255, 255, 0.8);
   --dash-text-subtle: #7f9ba5;
-  --dash-label: #c9dbe1;
+  --dash-label: #8fbac8;
+  --dash-section-title: rgba(255, 255, 255, 0.8);
+  --dash-legend-text: rgba(255, 255, 255, 0.7);
 
   /* Status */
   --dash-success: #98c93c;
   --dash-warning: #f0b429;
-  --dash-danger: #ff5a6a;
+  --dash-danger: #ff5563;
   --dash-amber: #f5a623;
   --dash-gold: #f6c344;
 
-  /* Chart */
+  /* Chart — Figma variables `blue` #76CBFF, `wa` #F9C77C, `re` #FF5563 */
+  --dash-chart-blue: #76cbff;
+  --dash-chart-amber: #f9c77c;
+  --dash-chart-red: #ff5563;
   --dash-chart-track: rgba(255, 255, 255, 0.08);
   --dash-gauge-disc: rgba(4, 30, 40, 0.85);
   --dash-chart-grid: rgba(143, 176, 188, 0.18);
-  --dash-chart-inbound: #6cc6f5;
-  --dash-chart-outbound: #f6c47a;
-  --dash-chart-ontime: #6cc6f5;
-  --dash-chart-noshow: #f6c47a;
-  --dash-chart-cancel: #f2545b;
+  --dash-chart-inbound: var(--dash-chart-blue);
+  --dash-chart-outbound: var(--dash-chart-amber);
+  --dash-chart-ontime: var(--dash-chart-blue);
+  --dash-chart-noshow: var(--dash-chart-amber);
+  --dash-chart-cancel: var(--dash-chart-red);
+  /* Figma effect `line`: drop shadow 0 0 12 #00E5FF33 */
+  --dash-line-glow: 0 0 12px rgba(0, 229, 255, 0.2);
 
   /* Layout */
   --dash-nav-width: 4.5rem;
@@ -67,9 +74,13 @@
   --dash-glow-strong: 0 0 15px rgba(0, 255, 255, 0.4), 0 2px 4px rgba(0, 255, 255, 0.4);
   --dash-focus-ring: 0 0 0 2px var(--dash-bg-deep), 0 0 0 4px var(--dash-cyan);
 
-  /* Typography — Figma: Poppins + Digital-7 for counters */
+  /*
+   * Typography — Figma: Poppins, Digital-7 for counters, Segoe UI for legends.
+   * Digital-7 is not licensed for commercial use, so counters use DSEG7 Classic (OFL-1.1).
+   */
   --dash-font: "Poppins", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --dash-font-digital: "Share Tech Mono", "Cascadia Mono", "Consolas", monospace;
+  --dash-font-digital: "DSEG7 Classic", "Share Tech Mono", "Consolas", monospace;
+  --dash-font-legend: "Segoe UI", "Poppins", "Helvetica Neue", Arial, sans-serif;
   --dash-font-mono: "Cascadia Mono", "Consolas", "Liberation Mono", monospace;
   --dash-fs-xs: 0.6875rem;
   --dash-fs-sm: 0.8rem;
@@ -85,6 +96,7 @@
   --dash-fs-counter-label: 1rem;
   --dash-fs-digit: 1.75rem;
   --dash-fs-chart: 0.6875rem;
+  --dash-fs-legend: 0.75rem;
   --dash-fw-label: 500;
   --dash-fw-value: 700;
 
@@ -104,6 +116,6 @@
   --dash-digit-gap: 0.5rem;
   --dash-digit-radius: 0.5rem;
 
-  /* Timezone for live clock */
-  --dash-timezone: Asia/Riyadh;
+  /* Timezone for live clock (docs: Africa/Cairo) */
+  --dash-timezone: Africa/Cairo;
 }
