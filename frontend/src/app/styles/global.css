@@ -1,0 +1,578 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Seven-segment counter digits (Figma: Digital-7 → DSEG7 Classic, SIL OFL 1.1, see assets/fonts). */
+@font-face {
+  font-family: "DSEG7 Classic";
+  src: url("../../assets/fonts/DSEG7Classic-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+ * `md` is the fit-to-viewport layout. It also needs enough height: phones in landscape
+ * (e.g. 844Ã—390) keep the scrolling mobile flow instead of a crushed no-scroll grid.
+ * Keep in sync with the @media blocks below.
+ */
+@custom-variant md (@media (min-width: 768px) and (min-height: 500px));
+
+@theme {
+  --color-dash-bg: var(--dash-bg);
+  --color-dash-bg-deep: var(--dash-bg-deep);
+  --color-dash-cyan: var(--dash-cyan);
+  --color-dash-muted: var(--dash-text-muted);
+  --color-dash-label: var(--dash-label);
+  --color-dash-danger: var(--dash-danger);
+  --color-dash-warning: var(--dash-warning);
+  --color-dash-success: var(--dash-success);
+  --color-dash-gold: var(--dash-gold);
+  --font-dash: var(--dash-font);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--dash-font);
+  color: var(--dash-text);
+  background: var(--dash-bg-deep);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--dash-focus-ring);
+}
+
+.dash-app-bg {
+  /* Figma frame base #082936 + centered cyan bloom (shared across all dashboards) */
+  background:
+    radial-gradient(ellipse 50% 55% at 52% 55%, rgba(0, 229, 255, 0.13), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 50%, transparent 55%, rgba(2, 16, 22, 0.55) 100%),
+    #082936;
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+.dash-app-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.2;
+  background-image: repeating-linear-gradient(
+    -28deg,
+    transparent,
+    transparent 22px,
+    rgba(120, 180, 200, 0.06) 22px,
+    rgba(120, 180, 200, 0.06) 23px
+  );
+}
+
+.dash-header {
+  background: var(--dash-header-bg);
+  box-shadow: inset 0 -1px 0 rgba(84, 233, 255, 0.08);
+}
+
+/* Header icon actions (Refresh / Presentation / Sign out) â€” unlayered so they win over theme layers */
+.dash-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  padding: 0;
+  border-radius: var(--dash-radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1rem;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.dash-icon-btn:hover:not(:disabled) {
+  color: var(--dash-cyan);
+  background: rgba(84, 233, 255, 0.08);
+  border-color: rgba(84, 233, 255, 0.25);
+}
+
+.dash-icon-btn:focus-visible {
+  color: var(--dash-cyan);
+  box-shadow: var(--dash-focus-ring);
+}
+
+.dash-icon-btn:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+
+.dash-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  inline-size: var(--dash-nav-btn);
+  block-size: var(--dash-nav-btn);
+  padding: 0;
+  border-radius: var(--dash-radius-nav);
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(190, 205, 210, 0.85);
+  font-size: var(--dash-nav-icon);
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.dash-nav-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+/* Figma active item: teal tile, cyan hairline, effects #00FFFF@40 r15 s2 + r4 o(0,2). */
+.dash-nav-btn[aria-current="page"] {
+  color: #00e5ff;
+  border-color: rgba(0, 229, 255, 0.55);
+  background: rgba(0, 120, 140, 0.32);
+  box-shadow:
+    0 0 15px 2px rgba(0, 255, 255, 0.4),
+    0 2px 4px rgba(0, 255, 255, 0.4);
+}
+
+.dash-nav-btn > svg {
+  width: var(--dash-nav-icon);
+  height: var(--dash-nav-icon);
+}
+
+/* KPI illustration pedestal â€” dark elliptical disc the reference icons stand on */
+.dash-pedestal {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  inline-size: var(--dash-pedestal-w);
+  block-size: calc(var(--dash-pedestal-w) * 0.78);
+}
+
+.dash-pedestal::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  block-size: 52%;
+  border-radius: 50%;
+  background: var(--dash-pedestal);
+  box-shadow: inset 0 1px 0 rgba(84, 233, 255, 0.06);
+}
+
+.dash-nav-btn > .pi {
+  font-size: var(--dash-nav-icon);
+}
+
+.dash-icon-btn > .pi {
+  font-size: inherit;
+}
+
+.dash-pedestal > i {
+  position: relative;
+  margin-bottom: 22%;
+  font-size: var(--dash-kpi-icon);
+  filter: drop-shadow(0 0 10px currentColor);
+}
+
+/* Central illustrations â€” on tablet/desktop they fill the grid area they are given */
+.dash-illus {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dash-illus__glow {
+  position: absolute;
+  inset: 8% 6%;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 229, 255, 0.2), transparent 100%);
+}
+
+.dash-illus__img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 55vh;
+  object-fit: contain;
+  filter: drop-shadow(0 0 28px rgba(0, 229, 255, 0.16));
+}
+
+/* Hard-edged crops (opaque backdrop) fade into the canvas instead of showing a box */
+.dash-illus__img--feather {
+  mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%);
+}
+
+/* Crops from the Figma export: only the outer few percent fade, so in-art rings stay visible */
+.dash-illus__img--edges {
+  mask-image:
+    linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent),
+    linear-gradient(180deg, transparent, #000 5%, #000 95%, transparent);
+  mask-composite: intersect;
+}
+
+/* Fades a stray neighbouring-layer fragment caught in the asset's bottom-end corner */
+.dash-illus__img--fade-corner {
+  mask-image: linear-gradient(to top left, transparent 11.5%, #000 14%);
+}
+
+/* Figma section title underline: hairline that fades out at both ends, spanning the title. */
+.dash-section-rule {
+  height: 1px;
+  width: 100%;
+  max-width: max(var(--dash-section-rule-w), 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(201, 219, 225, 0.15) 0%,
+    rgba(201, 219, 225, 0.55) 35%,
+    rgba(201, 219, 225, 0) 100%
+  );
+  margin-top: 0.45em;
+}
+
+.dash-glow-text {
+  text-shadow: 0 0 18px rgba(84, 233, 255, 0.35);
+}
+
+.dash-hub {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  gap: var(--dash-gap);
+}
+
+/*
+ * Tablet + desktop (Tailwind `md` = 768px): every route fits the viewport without
+ * document or nested scrolling. Layout sizes derive from --u so the composition keeps
+ * the 1920Ã—1080 reference proportions; floors keep text readable on short screens.
+ * Mobile (<768px) keeps normal document scrolling.
+ */
+@media (min-width: 768px) and (min-height: 500px) {
+  :root {
+    --u: min(1vw, 1.7778vh);
+    /* Figma 4K px ÷ 38.4 = u. Header band 162, nav buttons 120 @ pitch 168. */
+    --dash-header-height: max(3.25rem, 4.21875 * var(--u));
+    --dash-nav-btn: max(2.5rem, 3.125 * var(--u));
+    --dash-nav-icon: max(1.15rem, 1.6667 * var(--u));
+    --dash-nav-gap: max(0.6rem, 1.25 * var(--u));
+    --dash-nav-width: calc(var(--dash-nav-btn) + 2 * max(0.75rem, 1.72 * var(--u)));
+    --dash-page-pad: max(0.75rem, 1.6 * var(--u));
+    --dash-gap: max(0.5rem, 1.05 * var(--u));
+    --dash-gap-lg: max(0.75rem, 2.1 * var(--u));
+    --dash-radius-nav: max(0.5rem, 0.62 * var(--u));
+
+    --dash-fs-xs: max(0.6875rem, 0.68 * var(--u));
+    --dash-fs-sm: max(0.75rem, 0.8 * var(--u));
+    --dash-fs-md: max(0.8125rem, 0.9 * var(--u));
+    /* Figma type ramp: title 48, section 40, KPI label 36, KPI value 72 / unit 40, clock 32/40, legend 28. */
+    --dash-fs-title: max(1.05rem, 1.25 * var(--u));
+    --dash-fs-section: max(0.875rem, 1.0417 * var(--u));
+    --dash-fs-label: max(0.75rem, 0.9375 * var(--u));
+    --dash-fs-value: max(1.3rem, 1.875 * var(--u));
+    --dash-fs-value-lg: max(1.4rem, 2.1 * var(--u));
+    --dash-fs-unit: max(0.8rem, 1.0417 * var(--u));
+    --dash-fs-clock-date: max(0.75rem, 0.8333 * var(--u));
+    --dash-fs-clock-time: max(0.875rem, 1.0417 * var(--u));
+    --dash-fs-counter-label: max(0.875rem, 1.0417 * var(--u));
+    --dash-fs-legend: max(0.6875rem, 0.7292 * var(--u));
+    --dash-fs-digit: max(1.4rem, 2.15 * var(--u));
+    /* Axis/legend text: keep ≥11px so short viewports remain readable without global scale. */
+    --dash-fs-chart: max(0.6875rem, 0.68 * var(--u));
+
+    --dash-pedestal-w: max(3.25rem, 4.6 * var(--u));
+    --dash-kpi-icon: max(1.25rem, 1.9 * var(--u));
+    --dash-gauge-lg: max(5.5rem, 7.8 * var(--u));
+    --dash-gauge-md: max(4.75rem, 6.2 * var(--u));
+    --dash-gauge-sm: max(4rem, 4.4 * var(--u));
+    --dash-chart-h: max(7.5rem, 10.5 * var(--u));
+    --dash-chart-w: max(16rem, 21 * var(--u));
+    --dash-section-rule-w: max(7rem, 9 * var(--u));
+
+    /* Timer cells 120×130, gap 28. */
+    --dash-digit-w: max(1.9rem, 3.125 * var(--u));
+    --dash-digit-h: max(2.15rem, 3.3854 * var(--u));
+    --dash-digit-gap: max(0.35rem, 0.7292 * var(--u));
+    --dash-digit-radius: max(0.4rem, 0.4167 * var(--u));
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  .dash-app-bg {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  .dash-shell-body {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .dash-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .dash-main > * {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .dash-hub {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    max-width: calc(110 * var(--u));
+    margin-inline: auto;
+  }
+
+  .dash-illus {
+    height: 100%;
+    width: 100%;
+    container-type: size;
+  }
+
+  /* Box matches the artwork's aspect ratio so masks align with the bitmap, not a letterbox */
+  .dash-illus__img {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: min(100cqw, 100cqh * var(--dash-illus-ratio, 1));
+    height: auto;
+    max-height: none;
+  }
+
+  .dash-icon-btn {
+    inline-size: max(2rem, 2.1 * var(--u));
+    block-size: max(2rem, 2.1 * var(--u));
+    font-size: max(0.9rem, 0.95 * var(--u));
+  }
+}
+
+/* Portrait tablets: width is the constraint, so the scale unit follows width more generously */
+@media (min-width: 768px) and (min-height: 500px) and (orientation: portrait) {
+  :root {
+    --u: min(1.45vw, 1.05vh);
+  }
+}
+
+/* Header band — Figma `Group 2609329`: darker band with "///" accents flanking the centred title. */
+.dash-header {
+  position: relative;
+  background: linear-gradient(180deg, rgba(3, 20, 27, 0.6) 0%, rgba(4, 26, 35, 0.35) 100%);
+}
+
+.dash-header__accent {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(6.95 * var(--u, 1vw));
+  pointer-events: none;
+  opacity: 0.55;
+  background: repeating-linear-gradient(
+    -58deg,
+    transparent 0 9%,
+    rgba(120, 190, 210, 0.22) 9% 12%,
+    transparent 12% 21%
+  );
+  mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
+}
+
+/* Figma accent groups at x 1126 and 2445 (4K): 13.7u either side of the frame centre. */
+.dash-header__accent--start {
+  right: calc(50% + 13.7 * var(--u, 1vw));
+}
+
+.dash-header__accent--end {
+  left: calc(50% + 13.7 * var(--u, 1vw));
+}
+
+/* KPI tile illustrations cropped from the Figma export: fade the crop edge into the canvas. */
+.dash-kpi-art {
+  display: block;
+  height: auto;
+  mask-image: radial-gradient(ellipse 50% 50% at 50% 52%, #000 72%, transparent 100%);
+}
+
+/* Counter digits roll in when a real value arrives or changes (never self-incrementing). */
+@keyframes dash-digit-in {
+  from {
+    opacity: 0.25;
+    transform: translateY(-18%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.dash-digit-roll {
+  animation: dash-digit-in 120ms ease-out;
+}
+
+/* Clinical hotspot rings — Figma `Component 12`: ring 16 → 54 px, Smart Animate 0.4 s ease-in-out, once. */
+@keyframes dash-hotspot-grow {
+  from {
+    transform: scale(0.296);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.dash-hotspot-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: dash-hotspot-grow 400ms cubic-bezier(0.42, 0, 0.58, 1) both;
+}
+
+/* OR floor light pools — Figma `Frame 2611148` variants, Smart Animate 3 s ease-in-out, ping-pong. */
+@keyframes dash-or-pool-left {
+  to {
+    transform: scaleX(1.149);
+  }
+}
+
+@keyframes dash-or-pool-right {
+  to {
+    transform: scaleX(1.192);
+  }
+}
+
+.dash-or-pool {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgba(220, 245, 255, 0.22), rgba(220, 245, 255, 0));
+  mix-blend-mode: screen;
+}
+
+.dash-or-pool--left {
+  transform-origin: right center;
+  animation: dash-or-pool-left 3s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+}
+
+.dash-or-pool--right {
+  transform-origin: left center;
+  animation: dash-or-pool-right 3s cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+}
+
+/* Page change — Figma prototype: DISSOLVE 300 ms EASE_OUT on every nav click. */
+@keyframes dash-dissolve-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dash-page-enter {
+  animation: dash-dissolve-in 300ms cubic-bezier(0, 0, 0.58, 1);
+}
+
+/*
+ * Stage — landscape tablet/desktop renders each page at its Figma 3840×2160 coordinates.
+ * `place()` in shared/layout sets --x/--y/--w/--h in Figma px; 1u = 38.4 Figma px.
+ * Portrait and mobile ignore these and keep the page's flow layout.
+ */
+@media (min-width: 768px) and (min-height: 500px) and (orientation: landscape) {
+  .dash-shell-body {
+    position: relative;
+  }
+
+  .dash-nav-rail {
+    position: absolute;
+    z-index: 2;
+    left: calc(50% - 50 * var(--u) + 66 * var(--u) / 38.4);
+    top: calc(516 * var(--u) / 38.4 - var(--dash-header-height));
+  }
+
+  .dash-nav-rail > nav {
+    height: auto;
+    width: auto;
+    justify-content: flex-start;
+  }
+
+  .dash-main {
+    position: relative;
+    padding-inline-start: var(--dash-nav-width);
+  }
+
+  .dash-stage {
+    /* Figma-scaled sizes inside pages read this; it is unset in portrait/mobile so tokens apply there. */
+    --dash-stage-u: var(--u);
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: calc(100 * var(--u));
+    height: calc(56.25 * var(--u) - var(--dash-header-height));
+    transform: translateX(-50%);
+  }
+
+  .dash-place {
+    position: absolute;
+    left: calc(var(--x) * var(--u) / 38.4);
+    top: calc(var(--y) * var(--u) / 38.4 - var(--dash-header-height));
+    width: calc(var(--w) * var(--u) / 38.4);
+    height: calc(var(--h) * var(--u) / 38.4);
+  }
+
+  .dash-header__inner {
+    width: calc(100 * var(--u));
+    margin-inline: auto;
+    padding-inline: calc(84 * var(--u) / 38.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

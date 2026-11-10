@@ -23,13 +23,25 @@ public sealed class SqlServerSymbolOptions
 public sealed class AppCacheOptions
 {
     public const string SectionName = "AppCache";
-    /// <summary>Redis: host:port (e.g. redis:6379). SqlServer: ADO.NET connection string.</summary>
+
+    /// <summary>
+    /// StackExchange.Redis configuration string.
+    /// Docker (same Compose network): <c>redis:6379</c>.
+    /// Local backend against published Redis: <c>localhost:6379</c> (or host port from REDIS_HOST_PORT).
+    /// Overridden at runtime by env <c>AppCache__ConnectionString</c> / <c>APPCACHE_CONNECTION_STRING</c>.
+    /// </summary>
     public string ConnectionString { get; set; } = string.Empty;
-    /// <summary>Redis | SqlServer | InMemory</summary>
+
+    /// <summary>Redis | SqlServer | InMemory. InMemory skips Redis entirely.</summary>
     public string Provider { get; set; } = "Redis";
+
     public int CommandTimeoutSeconds { get; set; } = 30;
-    /// <summary>Redis key namespace prefix (default alnass).</summary>
+
+    /// <summary>Redis key namespace prefix (per-stack, e.g. alnass-dev).</summary>
     public string KeyPrefix { get; set; } = "alnass";
+
+    /// <summary>Only used when Provider=SqlServer. Redis ignores SQL cache migrations.</summary>
+    public bool RunMigrationsOnStartup { get; set; }
 }
 
 public sealed class SyncOptions

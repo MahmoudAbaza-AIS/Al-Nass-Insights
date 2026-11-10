@@ -16,4 +16,10 @@ public sealed class AuthenticationOptions
     public string Authority { get; set; } = string.Empty;
     public bool RequireHttpsMetadata { get; set; } = true;
     public bool DisableForLocalDevelopment { get; set; }
+
+    /// <summary>
+    /// When true, seeds the local demo user after owned-SQL migrations.
+    /// Must remain false in Production; enable only for Development/PPR labs.
+    /// </summary>
+    public bool SeedDemoUser { get; set; }
 }

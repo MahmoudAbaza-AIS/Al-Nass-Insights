@@ -11,5 +11,5 @@ export const callCenterModule: DashboardModule = {
     icon: "call",
   },
   loadView: () =>
-    import("./CallCenterDashboard").then((m) => ({ default: m.CallCenterDashboard })),
+    import("./pages/CallCenterDashboard").then((m) => ({ default: m.CallCenterDashboard })),
 };

@@ -49,6 +49,9 @@ deploy/hospital-access.local.md
 Platform.Docs/
 Platform.Docs/_extracted/
 
+## Local Figma reference notes (call log, specs, animation timings) — not pushed
+frontend/.figma-refs/*.md
+
 ## OS / IDE
 Thumbs.db
 Desktop.ini

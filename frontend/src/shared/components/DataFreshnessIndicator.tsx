@@ -17,13 +17,13 @@ export function DataFreshnessIndicator({
 }: DataFreshnessIndicatorProps) {
   return (
     <div
-      className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[length:var(--dash-fs-xs)] text-[var(--dash-label)]"
+      className="flex flex-wrap items-center justify-end gap-x-2 gap-y-0.5 text-[length:var(--dash-fs-xs)] leading-tight text-[var(--dash-text-subtle)]"
       role="status"
       aria-live="polite"
     >
       <span>
         Last updated:{" "}
-        <span className="text-[var(--dash-text)]">
+        <span className="text-[var(--dash-label)]">
           {formatTimestamp(lastSuccessfulAt, timeZone)}
         </span>
       </span>
@@ -35,7 +35,7 @@ export function DataFreshnessIndicator({
       ) : null}
       {error ? (
         <span className="rounded px-1.5 py-0.5 text-[var(--dash-danger)] ring-1 ring-[var(--dash-danger)]/40">
-          Refresh failed — showing last successful data
+          {lastSuccessfulAt ? "Refresh failed — showing last successful data" : "Refresh failed"}
         </span>
       ) : null}
     </div>

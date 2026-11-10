@@ -4,7 +4,7 @@
   Stop one isolated Al-Nass stack: dev | ppr | prod
 
 .DESCRIPTION
-  Default: `docker compose down` — removes containers/network for that project only.
+  Default: `docker compose down` - removes containers/network for that project only.
   Named volumes are kept unless -Volumes is passed.
 
   WARNING: -Volumes deletes Redis and SQL Server data for that stack only.

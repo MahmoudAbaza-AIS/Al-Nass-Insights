@@ -11,5 +11,5 @@ export const emergencyModule: DashboardModule = {
     icon: "emergency",
   },
   loadView: () =>
-    import("./EmergencyDashboard").then((m) => ({ default: m.EmergencyDashboard })),
+    import("./pages/EmergencyDashboard").then((m) => ({ default: m.EmergencyDashboard })),
 };

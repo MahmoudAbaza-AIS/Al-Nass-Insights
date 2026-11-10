@@ -94,13 +94,16 @@ dotnet run --project src/Insights.Presentation --launch-profile http
 cd frontend
 npm ci
 npm run typecheck
+npm test
 npm run build
 npm run dev
 ```
 
+Engineering conventions (auth seeding, module boundaries, production checklist): see [ENGINEERING.md](./ENGINEERING.md).
+
 Vite dev server (port **5173**) proxies `/api` and `/health` to `http://localhost:5080`.
 
-**Gap (honest):** `package.json` has no `lint` or `test` scripts and no ESLint/Vitest/Jest setup. CI does not claim those checks passed.
+**Quality gates:** Typecheck, Vitest (`npm test`), and production build are enforced in CI. ESLint/Prettier are not configured yet.
 
 ---
 

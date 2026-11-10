@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getDashboardDataService } from "@infrastructure/api";
+import { getDashboardDataService, isAbortError } from "@infrastructure/api";
 import type {
   DashboardId,
   DashboardPayload,
@@ -44,7 +44,6 @@ export function useDashboardData(options: UseDashboardDataOptions): UseDashboard
   const [lastSuccessfulAt, setLastSuccessfulAt] = useState<string | null>(null);
 
   const requestSeq = useRef(0);
-  const inFlight = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const dataRef = useRef<DashboardPayload | null>(null);
 
@@ -54,10 +53,11 @@ export function useDashboardData(options: UseDashboardDataOptions): UseDashboard
 
   const load = useCallback(
     async (mode: "initial" | "refresh") => {
-      if (!enabled || inFlight.current) {
+      if (!enabled) {
         return;
       }
-      inFlight.current = true;
+
+      // Cancel any in-flight request so refreshes are not silently dropped.
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -87,10 +87,7 @@ export function useDashboardData(options: UseDashboardDataOptions): UseDashboard
         setLastSuccessfulAt(new Date().toISOString());
         setState(empty ? "empty" : "success");
       } catch (err) {
-        if ((err as Error).name === "AbortError") {
-          return;
-        }
-        if (seq !== requestSeq.current) {
+        if (isAbortError(err) || seq !== requestSeq.current) {
           return;
         }
         setError(err instanceof Error ? err.message : "Failed to load dashboard");
@@ -99,7 +96,6 @@ export function useDashboardData(options: UseDashboardDataOptions): UseDashboard
         }
       } finally {
         if (seq === requestSeq.current) {
-          inFlight.current = false;
           setIsRefreshing(false);
         }
       }

@@ -1,5 +1,5 @@
--- Seed from UI Mockups 1.png–7.png + list of UI items (cropped symbols).
--- Mockup sample numbers are visual placeholders only — not production KPI values.
+-- Widget/symbol catalog metadata (layout, labels, mapping status).
+-- Does NOT seed KPI numeric values. Dashboard numbers come only from Oracle → sync → app cache.
 
 -- ========== Symbols (nav, charts, icons, heroes, section headers) ==========
 MERGE meta.Symbol AS t

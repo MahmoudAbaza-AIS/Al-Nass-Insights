@@ -1,4 +1,20 @@
 const DEFAULT_LOCALE = "en-GB";
+/** Docs: one definition of "today" and month boundaries, in Cairo time. */
+export const DEFAULT_TIME_ZONE = "Africa/Cairo";
+
+/** Shown wherever a value has not been published (never an implied zero). */
+export const EMPTY_VALUE = "-";
+
+/** Returns a usable IANA zone; invalid values fall back so render never throws. */
+export function resolveTimeZone(timeZone: string | null | undefined): string {
+  const candidate = typeof timeZone === "string" && timeZone.trim() ? timeZone.trim() : DEFAULT_TIME_ZONE;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: candidate }).format(new Date());
+    return candidate;
+  } catch {
+    return DEFAULT_TIME_ZONE;
+  }
+}
 
 export function formatNumber(
   value: number | null | undefined,
@@ -6,7 +22,7 @@ export function formatNumber(
   locale = DEFAULT_LOCALE,
 ): string {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE;
   }
   return new Intl.NumberFormat(locale, options).format(value);
 }
@@ -17,7 +33,7 @@ export function formatPercent(
   locale = DEFAULT_LOCALE,
 ): string {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE;
   }
   return `${formatNumber(value, {
     minimumFractionDigits: precision,
@@ -30,7 +46,7 @@ export function formatDurationMinutes(
   precision = 0,
 ): string {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE;
   }
   return `${formatNumber(value, {
     minimumFractionDigits: precision,
@@ -44,7 +60,7 @@ export function formatMetricValue(
   precision: number,
 ): string {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE;
   }
   if (unit === "%") {
     return formatPercent(value, precision);
@@ -59,28 +75,64 @@ export function formatMetricValue(
   return unit ? `${formatted} ${unit}` : formatted;
 }
 
+/** Number and unit as separate strings — the reference renders units smaller than values. */
+export function formatMetricParts(
+  value: number | null | undefined,
+  unit: string,
+  precision: number,
+): { number: string; unit: string } {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return { number: EMPTY_VALUE, unit: "" };
+  }
+  return {
+    number: formatNumber(value, {
+      minimumFractionDigits: precision,
+      maximumFractionDigits: precision,
+    }),
+    unit,
+  };
+}
+
+/** Distribution shares are 0–1 fractions; charts and labels need 0–100. */
+export function shareToPercent(share: number | null | undefined): number | null {
+  if (share === null || share === undefined || Number.isNaN(share)) {
+    return null;
+  }
+  return share * 100;
+}
+
 export function formatClock(
   date: Date,
   timeZone: string,
-  locale = DEFAULT_LOCALE,
-): { dateLabel: string; timeLabel: string } {
+  locale = "en-US",
+): { dateLabel: string; timeLabel: string; periodLabel: string } {
+  const zone = resolveTimeZone(timeZone);
+  // Figma: "Tuesday March 17, 2026" (no weekday comma)
   const dateLabel = new Intl.DateTimeFormat(locale, {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
-    timeZone,
-  }).format(date);
+    timeZone: zone,
+  })
+    .format(date)
+    .replace(/^(\w+),/, "$1");
 
-  const timeLabel = new Intl.DateTimeFormat(locale, {
+  const parts = new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     hour12: true,
-    timeZone,
-  }).format(date);
+    timeZone: zone,
+  }).formatToParts(date);
 
-  return { dateLabel, timeLabel };
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+
+  const timeLabel = `${get("hour")}:${get("minute")}:${get("second")}`;
+  const periodLabel = get("dayPeriod");
+
+  return { dateLabel, timeLabel, periodLabel };
 }
 
 export function formatTimestamp(
@@ -98,7 +150,7 @@ export function formatTimestamp(
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
-    timeZone,
+    timeZone: resolveTimeZone(timeZone),
   }).format(date);
 }
 

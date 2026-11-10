@@ -32,9 +32,11 @@ services:
     image: redis:7.4-alpine
     container_name: alnass-${STACK_NAME:-dev}-redis
     command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
-    # Internal only — not published to the host (avoids port clashes between stacks)
+    # Compose network: redis:6379. Host publish for local `dotnet run` backends.
     expose:
       - "6379"
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -92,6 +94,7 @@ services:
       Authentication__SigningKey: "${AUTH_JWT_SIGNING_KEY:?Set AUTH_JWT_SIGNING_KEY in the stack env file}"
       Authentication__TokenLifetimeMinutes: "${AUTH_TOKEN_LIFETIME_MINUTES:-480}"
       Authentication__DisableForLocalDevelopment: "${AUTH_DISABLE_FOR_LOCAL_DEVELOPMENT:-false}"
+      Authentication__SeedDemoUser: "${AUTH_SEED_DEMO_USER:-false}"
       Authentication__Authority: "${AUTH_AUTHORITY:-https://keycloak.example.local/realms/alnass}"
       Authentication__RequireHttpsMetadata: "${AUTH_REQUIRE_HTTPS_METADATA:-true}"
       Sources__SqlServerSymbols__RunMigrationsOnStartup: "${SYMBOLS_RUN_MIGRATIONS_ON_STARTUP:-true}"
@@ -100,7 +103,8 @@ services:
       AppCache__ConnectionString: "${APPCACHE_CONNECTION_STRING:-redis:6379}"
       AppCache__KeyPrefix: "${APPCACHE_KEY_PREFIX:-alnass}"
       AppCache__RunMigrationsOnStartup: "${APPCACHE_RUN_MIGRATIONS_ON_STARTUP:-false}"
-      Sources__Oracle__Enabled: "${ORACLE_ENABLED:-false}"
+      # KPI numbers come only from Oracle sync → app cache. Keep enabled when the hospital DB is reachable.
+      Sources__Oracle__Enabled: "${ORACLE_ENABLED:-true}"
       Sources__Oracle__ConnectionString: "${ORACLE_CONNECTION_STRING:-}"
       Sources__SqlServerSymbols__Enabled: "${SYMBOLS_ENABLED:-true}"
       Sources__SqlServerSymbols__ConnectionString: "${SYMBOLS_CONNECTION_STRING}"
@@ -110,6 +114,7 @@ services:
       Synchronization__ActivateFasterTiers: "${SYNC_ACTIVATE_FASTER_TIERS:-false}"
       PublicUrls__Dashboard: "${DASHBOARD_PUBLIC_URL:-http://localhost}"
       PublicUrls__ApiBase: "${API_PUBLIC_BASE_URL:-http://localhost/api/v1}"
+      Cors__AllowedOrigins: "${CORS_ALLOWED_ORIGINS:-}"
     networks:
       - stack
     healthcheck:

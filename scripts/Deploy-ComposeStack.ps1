@@ -10,7 +10,7 @@
   - Does not run `docker compose down -v` (Redis/SQL named volumes are preserved).
   - Does not provision, migrate, or modify customer Oracle.
   - App-cache SQL migrations apply only when AppCache provider is SqlServer
-    (Docker stacks use Redis by default — migrations are skipped for Redis).
+    (Docker stacks use Redis by default - migrations are skipped for Redis).
 
 .NOTES
   Stack env files (.env.dev / .env.ppr / .env) must already exist on the deploy host
@@ -56,7 +56,7 @@ if (-not (Test-Path -LiteralPath $composeFile)) {
     throw "docker-compose.yml not found at $composeFile"
 }
 if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot $envFile))) {
-    throw "Missing $envFile in $RepoRoot — copy from .env.example and fill secrets on the deploy host."
+    throw "Missing $envFile in $RepoRoot - copy from .env.example and fill secrets on the deploy host."
 }
 
 if ($BackendImage -match ':(latest|dev|ppr|prod|main)$' -and $BackendImage -notmatch $CommitSha) {
@@ -88,7 +88,7 @@ docker compose --env-file $envFile pull backend frontend
 if ($LASTEXITCODE -ne 0) { throw "docker compose pull failed (exit $LASTEXITCODE)" }
 
 # Recreate application containers from pulled images. Do not pass --build.
-# Do not use `down -v` — named volumes redis_data/sql_data must survive.
+# Do not use `down -v` - named volumes redis_data/sql_data must survive.
 docker compose --env-file $envFile up -d --no-build --remove-orphans
 if ($LASTEXITCODE -ne 0) { throw "docker compose up failed (exit $LASTEXITCODE)" }
 

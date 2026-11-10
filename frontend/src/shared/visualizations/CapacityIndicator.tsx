@@ -1,68 +1,54 @@
-import { formatNumber } from "../utils/format";
+import { EMPTY_VALUE, formatNumber } from "../utils/format";
 import type { CapacityReading } from "@contracts/metrics";
 
 export interface CapacityIndicatorProps {
   capacity: CapacityReading | undefined;
-  orientation?: "vertical" | "horizontal";
+  /** Optional title rendered beside the thermometer (Figma Inpatient "Bed Capacity"). */
+  title?: string;
 }
 
-export function CapacityIndicator({
-  capacity,
-  orientation = "vertical",
-}: CapacityIndicatorProps) {
-  if (!capacity || capacity.used === null || capacity.available === null) {
-    return (
-      <div className="text-[length:var(--dash-fs-sm)] text-[var(--dash-muted)]" role="status">
-        Bed capacity unavailable
-      </div>
-    );
-  }
-
-  const total = capacity.used + capacity.available;
-  const usedPct = total > 0 ? (capacity.used / total) * 100 : 0;
-  const summary = `${formatNumber(capacity.used)} used, ${formatNumber(capacity.available)} available`;
-
-  if (orientation === "horizontal") {
-    return (
-      <div className="w-full max-w-xs" aria-label={`Bed capacity: ${summary}`}>
-        <div className="mb-2 flex justify-between text-[length:var(--dash-fs-sm)]">
-          <span className="text-[var(--dash-danger)] font-semibold">
-            {formatNumber(capacity.used)} Used
-          </span>
-          <span className="text-[var(--dash-label)]">
-            {formatNumber(capacity.available)} Available
-          </span>
-        </div>
-        <div className="h-3 w-full overflow-hidden rounded-full bg-[var(--dash-chart-track)]">
-          <div
-            className="h-full rounded-full bg-[var(--dash-danger)]"
-            style={{ width: `${usedPct}%` }}
-          />
-        </div>
-      </div>
-    );
-  }
+/**
+ * Inpatient Bed Capacity: glass thermometer filled by occupied share, used/available counts beside it.
+ * Without a published census the thermometer stays empty and both counts show "-".
+ */
+export function CapacityIndicator({ capacity, title }: CapacityIndicatorProps) {
+  const published = capacity && capacity.used !== null && capacity.available !== null ? capacity : null;
+  const used = published?.used ?? null;
+  const available = published?.available ?? null;
+  const total = used !== null && available !== null ? used + available : 0;
+  const usedPct = total > 0 && used !== null ? (used / total) * 100 : 0;
+  const summary = published ? `${formatNumber(used)} used, ${formatNumber(available)} available` : "unavailable";
 
   return (
-    <div className="flex items-center gap-3" aria-label={`Bed capacity: ${summary}`}>
-      <div className="relative h-40 w-7 overflow-hidden rounded-full bg-[var(--dash-chart-track)]">
-        <div
-          className="absolute inset-x-0 bottom-0 rounded-full bg-gradient-to-t from-[var(--dash-danger)] to-[#ff8a95]"
-          style={{ height: `${usedPct}%` }}
-        />
-      </div>
-      <div className="flex flex-col gap-2 text-[length:var(--dash-fs-sm)]">
-        <div>
-          <div className="text-lg font-bold text-[var(--dash-danger)]">
-            {formatNumber(capacity.used)}
-          </div>
-          <div className="text-[var(--dash-label)]">Used</div>
+    <div className="flex items-start gap-[calc(var(--dash-gap)*1.3)]" role="group" aria-label={`Bed capacity: ${summary}`}>
+      <div className="relative h-[calc(var(--dash-gauge-md)*1.05)] w-[calc(var(--dash-gauge-md)*0.26)] shrink-0 rounded-full border border-white/25 bg-white/10 p-[3px] shadow-[inset_0_0_8px_rgba(255,255,255,0.12)]">
+        <div className="relative h-full w-full overflow-hidden rounded-full">
+          {published ? (
+            <div
+              className="absolute inset-x-0 bottom-0 rounded-full bg-gradient-to-t from-[#ff4f5e] to-[#ff7b86]"
+              style={{ height: `${usedPct}%` }}
+            />
+          ) : null}
         </div>
-        <div>
-          <div className="text-lg font-bold text-[var(--dash-label)]">
-            {formatNumber(capacity.available)}
-          </div>
-          <div className="text-[var(--dash-label)]">Available</div>
+      </div>
+      <div className="flex flex-col gap-[0.5em] leading-tight">
+        {title ? (
+          <header className="mb-[0.5em] w-max">
+            <h2 className="m-0 whitespace-nowrap text-[length:var(--dash-fs-section)] font-medium text-[var(--dash-section-title)]">{title}</h2>
+            <div className="dash-section-rule" aria-hidden />
+          </header>
+        ) : null}
+        <div className="text-[length:var(--dash-fs-label)]">
+          <span className="text-[length:var(--dash-fs-unit)] font-bold text-[var(--dash-danger)]">
+            {used === null ? <span className="opacity-60">{EMPTY_VALUE}</span> : formatNumber(used)}
+          </span>{" "}
+          <span className="text-[var(--dash-danger)]">Used</span>
+        </div>
+        <div className="text-[length:var(--dash-fs-label)]">
+          <span className="text-[length:var(--dash-fs-unit)] font-bold text-[var(--dash-label)]">
+            {available === null ? <span className="opacity-60">{EMPTY_VALUE}</span> : formatNumber(available)}
+          </span>{" "}
+          <span className="text-[var(--dash-label)]">Available</span>
         </div>
       </div>
     </div>

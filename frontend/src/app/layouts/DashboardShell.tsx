@@ -7,7 +7,7 @@ import type { DashboardId } from "@contracts/metrics";
 import {
   useDisplayPreferences,
   useDisplayPreferencesActions,
-} from "@shared/providers/DisplayPreferencesProvider";
+} from "@shared/providers/useDisplayPreferences";
 
 export interface DashboardShellProps {
   title: string;
@@ -48,7 +48,7 @@ export function DashboardShell({
   return (
     <div
       ref={shellRef}
-      className="dash-app-bg flex min-h-screen flex-col text-[var(--dash-text)]"
+      className="dash-app-bg flex min-h-screen flex-col text-[var(--dash-text)] md:min-h-0"
     >
       <a
         href="#main-content"
@@ -73,8 +73,8 @@ export function DashboardShell({
         userDisplayName={userDisplayName}
         onLogout={onLogout}
       />
-      <div className="relative z-[1] flex min-h-0 flex-1 flex-col md:flex-row">
-        <aside className="hidden border-r border-white/5 md:block" aria-label="Primary">
+      <div className="dash-shell-body relative z-[1] flex min-h-0 flex-1 flex-col md:flex-row">
+        <aside className="dash-nav-rail hidden shrink-0 self-stretch md:block" aria-label="Primary">
           <DepartmentNavigation
             items={registry}
             activeId={activeId}
@@ -89,7 +89,10 @@ export function DashboardShell({
             compact
           />
         </div>
-        <main id="main-content" className="min-w-0 flex-1 overflow-auto px-3 py-4 md:px-6 md:py-5">
+        <main
+          id="main-content"
+          className="dash-main min-w-0 flex-1 px-[var(--dash-page-pad)] py-4 md:ps-0 md:pt-[calc(var(--dash-page-pad)*0.6)] md:pb-[var(--dash-page-pad)]"
+        >
           {children}
         </main>
       </div>

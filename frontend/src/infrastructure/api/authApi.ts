@@ -1,3 +1,6 @@
+import { apiUrl } from "./config";
+import { apiFetch, readApiError } from "./httpClient";
+
 export interface AuthUser {
   userId: string;
   username: string;
@@ -15,15 +18,50 @@ export interface LoginResponse {
   user: AuthUser;
 }
 
-function apiBase(): string {
-  return (import.meta.env.VITE_API_BASE_URL?.trim() || "/api/v1").replace(/\/$/, "");
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+export function parseAuthUser(raw: unknown): AuthUser | null {
+  if (!isRecord(raw)) return null;
+  const username = asString(raw.username);
+  const displayName = asString(raw.displayName);
+  const organization = asString(raw.organization);
+  if (!username || !displayName || !organization) return null;
+  return {
+    userId: asString(raw.userId) ?? "",
+    username,
+    displayName,
+    email: asString(raw.email),
+    organization,
+    roles: asStringArray(raw.roles),
+    dashboards: asStringArray(raw.dashboards),
+  };
+}
+
+export function parseLoginResponse(raw: unknown): LoginResponse | null {
+  if (!isRecord(raw)) return null;
+  const accessToken = asString(raw.accessToken);
+  const tokenType = asString(raw.tokenType) ?? "Bearer";
+  const expiresAt = asString(raw.expiresAt);
+  const user = parseAuthUser(raw.user);
+  if (!accessToken || !expiresAt || !user) return null;
+  return { accessToken, tokenType, expiresAt, user };
 }
 
 export async function loginRequest(username: string, password: string): Promise<LoginResponse> {
-  const response = await fetch(`${apiBase()}/auth/login`, {
+  const response = await apiFetch(apiUrl("/auth/login"), {
     method: "POST",
     headers: {
-      Accept: "application/json",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ username, password }),
@@ -33,24 +71,55 @@ export async function loginRequest(username: string, password: string): Promise<
     if (response.status === 401) {
       throw new Error("Invalid username or password.");
     }
-    throw new Error(`Login failed (${response.status})`);
+    if (response.status === 429) {
+      throw new Error("Too many sign-in attempts. Please wait and try again.");
+    }
+    throw await readApiError(response, `Login failed (${response.status})`);
   }
 
-  return (await response.json()) as LoginResponse;
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch {
+    throw new Error("Login response was not valid JSON.");
+  }
+
+  const parsed = parseLoginResponse(json);
+  if (!parsed) {
+    throw new Error("Login response shape was not recognized.");
+  }
+  return parsed;
 }
 
-export async function fetchCurrentUser(accessToken: string): Promise<AuthUser> {
-  const response = await fetch(`${apiBase()}/auth/me`, {
+export async function fetchCurrentUser(
+  accessToken?: string,
+  signal?: AbortSignal,
+): Promise<AuthUser> {
+  const headers = new Headers({ Accept: "application/json" });
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  const response = await apiFetch(apiUrl("/auth/me"), {
     method: "GET",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
+    headers,
+    signal,
   });
 
   if (!response.ok) {
-    throw new Error(`Session check failed (${response.status})`);
+    throw await readApiError(response, `Session check failed (${response.status})`);
   }
 
-  return (await response.json()) as AuthUser;
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch {
+    throw new Error("Session response was not valid JSON.");
+  }
+
+  const user = parseAuthUser(json);
+  if (!user) {
+    throw new Error("Session response shape was not recognized.");
+  }
+  return user;
 }

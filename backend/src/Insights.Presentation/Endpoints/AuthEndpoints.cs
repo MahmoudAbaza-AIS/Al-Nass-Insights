@@ -2,6 +2,7 @@ using Insights.Application.Auth;
 using Insights.Infrastructure.Auth;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Insights.Presentation.Endpoints;
 
@@ -10,12 +11,14 @@ public static class AuthEndpoints
     public static RouteGroupBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/v1/auth")
-            .WithTags("Auth")
-            .AllowAnonymous();
+            .WithTags("Auth");
 
+        // AllowAnonymous only on login — do not put it on the group (would skip /me auth).
         group.MapPost("/login", Login)
             .WithName("Login")
-            .WithSummary("Authenticate with username/password and receive a JWT access token.");
+            .WithSummary("Authenticate with username/password and receive a JWT access token.")
+            .AllowAnonymous()
+            .RequireRateLimiting("auth-login");
 
         group.MapGet("/me", Me)
             .WithName("GetCurrentUser")
@@ -36,7 +39,18 @@ public static class AuthEndpoints
                 ["body"] = ["Request body is required."]
             });
 
-        var result = await login.ExecuteAsync(request.Username ?? string.Empty, request.Password ?? string.Empty, cancellationToken);
+        var username = request.Username?.Trim() ?? string.Empty;
+        var password = request.Password ?? string.Empty;
+
+        if (username.Length is 0 or > 128 || password.Length is 0 or > 256)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["credentials"] = ["Username and password are required (username ≤ 128, password ≤ 256)."]
+            });
+        }
+
+        var result = await login.ExecuteAsync(username, password, cancellationToken);
         if (!result.Success || result.Token is null)
             return TypedResults.Unauthorized();
 
@@ -64,12 +78,26 @@ public static class AuthEndpoints
         var username = user.FindFirst("preferred_username")?.Value
             ?? user.Identity.Name
             ?? "unknown";
-        var displayName = user.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? username;
+        // JWT bearer maps NameClaimType to preferred_username, so ClaimTypes.Name may appear
+        // more than once (username + display name). Prefer a Name claim that is not the username.
+        var displayName = user.FindAll(System.Security.Claims.ClaimTypes.Name)
+                .Select(c => c.Value)
+                .FirstOrDefault(v => !string.Equals(v, username, StringComparison.OrdinalIgnoreCase))
+            ?? user.FindFirst("name")?.Value
+            ?? username;
         var org = user.FindFirst(JwtTokenService.OrganizationClaim)?.Value ?? string.Empty;
         var email = user.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email)?.Value;
-        var roles = user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToArray();
-        var dashboards = (user.FindFirst(JwtTokenService.DashboardsClaim)?.Value ?? "*")
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        // LocalJwt uses ClaimTypes.Role; Keycloak is configured with RoleClaimType = "roles".
+        var roles = user.FindAll(System.Security.Claims.ClaimTypes.Role)
+            .Concat(user.FindAll("roles"))
+            .Select(c => c.Value)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var dashboards = user.FindAll(JwtTokenService.DashboardsClaim)
+            .Concat(user.FindAll("dashboard"))
+            .SelectMany(c => c.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
         Guid.TryParse(user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
             ?? user.FindFirst("sub")?.Value, out var userId);

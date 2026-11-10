@@ -1,20 +1,19 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useReducer,
   type ReactNode,
 } from "react";
+import {
+  DisplayDispatchContext,
+  DisplayStateContext,
+  type DisplayPreferences,
+} from "./displayPreferencesContext";
+import { DEFAULT_TIME_ZONE, resolveTimeZone } from "../utils/format";
 
-const STORAGE_KEY = "alnass.dashboard.displayPrefs";
-
-export interface DisplayPreferences {
-  timeZone: string;
-  presentationMode: boolean;
-  refreshIntervalMs: number;
-}
+// v2: default zone moved to Africa/Cairo; older stored zones are not carried over.
+const STORAGE_KEY = "alnass.dashboard.displayPrefs.v2";
 
 type Action =
   | { type: "setTimeZone"; timeZone: string }
@@ -23,7 +22,7 @@ type Action =
   | { type: "hydrate"; prefs: DisplayPreferences };
 
 const defaults: DisplayPreferences = {
-  timeZone: "Asia/Riyadh",
+  timeZone: DEFAULT_TIME_ZONE,
   presentationMode: false,
   refreshIntervalMs: 60_000,
 };
@@ -34,10 +33,12 @@ function loadPrefs(): DisplayPreferences {
     if (!raw) return defaults;
     const parsed = JSON.parse(raw) as Partial<DisplayPreferences>;
     return {
-      timeZone: typeof parsed.timeZone === "string" ? parsed.timeZone : defaults.timeZone,
+      timeZone: resolveTimeZone(
+        typeof parsed.timeZone === "string" ? parsed.timeZone : defaults.timeZone,
+      ),
       presentationMode: false,
       refreshIntervalMs:
-        typeof parsed.refreshIntervalMs === "number"
+        typeof parsed.refreshIntervalMs === "number" && Number.isFinite(parsed.refreshIntervalMs)
           ? parsed.refreshIntervalMs
           : defaults.refreshIntervalMs,
     };
@@ -75,18 +76,11 @@ function reducer(state: DisplayPreferences, action: Action): DisplayPreferences 
   }
 }
 
-const DisplayStateContext = createContext<DisplayPreferences | null>(null);
-const DisplayDispatchContext = createContext<{
-  setTimeZone: (tz: string) => void;
-  setPresentationMode: (value: boolean) => void;
-  setRefreshInterval: (ms: number) => void;
-} | null>(null);
-
 export function DisplayPreferencesProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, loadPrefs);
 
   const setTimeZone = useCallback((timeZone: string) => {
-    dispatch({ type: "setTimeZone", timeZone });
+    dispatch({ type: "setTimeZone", timeZone: resolveTimeZone(timeZone) });
   }, []);
   const setPresentationMode = useCallback((value: boolean) => {
     dispatch({ type: "setPresentationMode", value });
@@ -109,16 +103,4 @@ export function DisplayPreferencesProvider({ children }: { children: ReactNode }
       <DisplayDispatchContext.Provider value={api}>{children}</DisplayDispatchContext.Provider>
     </DisplayStateContext.Provider>
   );
-}
-
-export function useDisplayPreferences() {
-  const ctx = useContext(DisplayStateContext);
-  if (!ctx) throw new Error("useDisplayPreferences requires provider");
-  return ctx;
-}
-
-export function useDisplayPreferencesActions() {
-  const ctx = useContext(DisplayDispatchContext);
-  if (!ctx) throw new Error("useDisplayPreferencesActions requires provider");
-  return ctx;
 }

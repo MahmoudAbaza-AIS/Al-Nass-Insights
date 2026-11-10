@@ -11,5 +11,5 @@ export const inpatientModule: DashboardModule = {
     icon: "inpatient",
   },
   loadView: () =>
-    import("./InpatientDashboard").then((m) => ({ default: m.InpatientDashboard })),
+    import("./pages/InpatientDashboard").then((m) => ({ default: m.InpatientDashboard })),
 };

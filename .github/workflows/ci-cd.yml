@@ -107,24 +107,26 @@ jobs:
       - name: Install dependencies (npm ci)
         run: npm ci
 
-      - name: Report missing frontend checks
-        run: |
-          {
-            echo "## Frontend check gaps"
-            echo ""
-            echo "The frontend package.json does **not** define \`lint\` or \`test\` scripts,"
-            echo "and no ESLint/Vitest/Jest tooling is present in this repository."
-            echo "CI runs deterministic install, TypeScript check, and production build only."
-            echo "Do not treat lint/unit-test as passed — they are **not configured**."
-          } >> "$GITHUB_STEP_SUMMARY"
-
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
 
       - name: Production build
         run: npm run build
         env:
           VITE_API_BASE_URL: /api/v1
+
+      - name: Frontend quality notes
+        if: always()
+        run: |
+          {
+            echo "## Frontend checks"
+            echo ""
+            echo "- Typecheck, Vitest unit tests, and production build are enforced."
+            echo "- ESLint/Prettier are not configured yet (deferred)."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   docker-validate:
     name: Docker build validate
