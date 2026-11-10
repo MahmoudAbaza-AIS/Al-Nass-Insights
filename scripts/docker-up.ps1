@@ -27,7 +27,7 @@ $envFile = switch ($Stack) {
 }
 
 if (-not (Test-Path -LiteralPath $envFile)) {
-    throw "Missing $envFile — copy from .env.example and fill secrets."
+    throw "Missing $envFile - copy from .env.example and fill secrets."
 }
 
 # Local builds tag as alnass-backend:local / alnass-frontend:local (compose defaults).
